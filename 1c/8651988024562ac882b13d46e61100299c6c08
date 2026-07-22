@@ -1,0 +1,85 @@
+Cargo.toml
+  s_ad20452d2c671c::t_7d16ee69ef1168 1-16
+ui/src/App.tsx
+  s_ad20452d2c671c::t_2bfb965a5f01e0 1-8
+ui/index.html
+  s_ad20452d2c671c::t_4abaa078353a66 1-12
+crates/ag_risk/Cargo.toml
+  s_ad20452d2c671c::t_9e883eb03ca203 1-4
+.eslintrc.cjs
+  s_ad20452d2c671c::t_7fe017589d131b 9-15,19-41
+  s_ad20452d2c671c::t_376566c461c7e4 1-8,16-18
+crates/ag_db/Cargo.toml
+  s_ad20452d2c671c::t_99ba2928aa5d9f 1-4
+crates/ag_sync/Cargo.toml
+  s_ad20452d2c671c::t_2bc85a8e17cfde 1-4
+crates/ag_jira/Cargo.toml
+  s_ad20452d2c671c::t_5b621583188bec 1-4
+crates/ag_db/src/lib.rs
+  s_ad20452d2c671c::t_bc72d3a25ae37d 1-9
+ui/tsconfig.json
+  s_ad20452d2c671c::t_f3438ea5988648 1-21
+crates/ag_credentials/src/lib.rs
+  s_ad20452d2c671c::t_f5417c99c4bf0b 1-9
+.github/workflows/ci.yml
+  s_ad20452d2c671c::t_63a8dc74d1a140 1-58
+crates/ag_sync/src/lib.rs
+  s_ad20452d2c671c::t_e9714ceb41b569 1-9
+src-tauri/src/main.rs
+  s_ad20452d2c671c::t_0eafd43f1bede1 1-3
+ui/src/vite-env.d.ts
+  s_ad20452d2c671c::t_2d2c35a88350d3 1
+crates/ag_credentials/Cargo.toml
+  s_ad20452d2c671c::t_f5651d12310c3f 1-4
+package.json
+  s_ad20452d2c671c::t_5710f5f93f2cb4 1-11
+ui/tsconfig.node.json
+  s_ad20452d2c671c::t_1fe6187df25fdd 1-18
+crates/ag_gemini/src/lib.rs
+  s_ad20452d2c671c::t_a7ef71e83353e6 1-9
+crates/ag_analytics/Cargo.toml
+  s_ad20452d2c671c::t_d0045b6c92d6ec 1-4
+src-tauri/src/lib.rs
+  s_ad20452d2c671c::t_258da1c65125bc 1-17
+ui/vite.config.ts
+  s_ad20452d2c671c::t_2cdd8128f931c7 1-10
+src-tauri/Cargo.toml
+  s_ad20452d2c671c::t_70d162121b03a6 1-13
+crates/ag_risk/src/lib.rs
+  s_ad20452d2c671c::t_ccf8c3de059940 1-9
+crates/ag_analytics/src/lib.rs
+  s_ad20452d2c671c::t_37f4d9cb7e4694 1-9
+ui/src/App.test.tsx
+  s_ad20452d2c671c::t_507fcbdc996ff9 1-8
+src-tauri/tauri.conf.json
+  s_ad20452d2c671c::t_583a2a7585c3be 1-30
+crates/ag_jira/src/lib.rs
+  s_ad20452d2c671c::t_61e420cbfa0553 1-9
+crates/ag_gemini/Cargo.toml
+  s_ad20452d2c671c::t_d4051fe8b8053a 1-4
+.gitignore
+  s_ad20452d2c671c::t_e2d73270b58763 3-10
+.prettierrc
+  s_ad20452d2c671c::t_770f7747a8e5c7 1-6
+ui/package.json
+  s_ad20452d2c671c::t_658ac14c568024 8,10-11
+  s_ad20452d2c671c::t_8698f23ff10bb1 1-7,9,12-33
+ui/src/main.tsx
+  s_ad20452d2c671c::t_6e01b0b353184a 1-15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1c8651988024562ac882b13d46e61100299c6c08",
+  "prompts": {},
+  "sessions": {
+    "s_ad20452d2c671c": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "af787da8-4bf0-4389-9285-eb07445b140b",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

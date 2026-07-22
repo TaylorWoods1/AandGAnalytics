@@ -26,16 +26,11 @@ pub struct SyncEngine<'a, H: HttpDoer> {
 }
 
 impl<'a, H: HttpDoer> SyncEngine<'a, H> {
-    /// Build a sync engine over an open, migrated database and an [`HttpDoer`].
-    pub fn new(db: &'a Connection, http: H) -> Self {
-        let creds = JiraCredentials {
-            site_url: "https://fake.atlassian.net".into(),
-            email: "dev@example.com".into(),
-            api_token: "token".into(),
-        };
+    /// Build a sync engine over an open, migrated database, site credentials, and an [`HttpDoer`].
+    pub fn new(db: &'a Connection, creds: &JiraCredentials, http: H) -> Self {
         Self {
             db,
-            jira: JiraClient::with_http(&creds, http),
+            jira: JiraClient::with_http(creds, http),
             paused: false,
             fail_after_issue_pages: None,
             issues_synced: 0,
@@ -76,11 +71,23 @@ impl<'a, H: HttpDoer> SyncEngine<'a, H> {
         &mut self,
         on_progress: impl Fn(SyncProgress),
     ) -> Result<(), SyncError> {
+        self.issues_synced = 0;
+        let result = self.run_full_inner(&on_progress).await;
+        if let Err(ref err) = result {
+            emit_failed(&on_progress, self.issues_synced, err);
+        }
+        result
+    }
+
+    async fn run_full_inner(
+        &mut self,
+        on_progress: &impl Fn(SyncProgress),
+    ) -> Result<(), SyncError> {
         self.sync_story_points_field().await?;
-        self.sync_projects(&on_progress).await?;
-        self.sync_issues(FULL_JQL, true, &on_progress).await?;
-        self.sync_sprints(&on_progress).await?;
-        self.rebuild_derived(&on_progress)?;
+        self.sync_projects(on_progress).await?;
+        self.sync_issues(FULL_JQL, true, on_progress).await?;
+        self.sync_sprints(on_progress).await?;
+        self.rebuild_derived(on_progress)?;
         self.write_watermark()?;
         on_progress(SyncProgress {
             phase: SyncPhase::Idle,
@@ -97,6 +104,17 @@ impl<'a, H: HttpDoer> SyncEngine<'a, H> {
         &mut self,
         on_progress: impl Fn(SyncProgress),
     ) -> Result<(), SyncError> {
+        let result = self.run_incremental_inner(&on_progress).await;
+        if let Err(ref err) = result {
+            emit_failed(&on_progress, self.issues_synced, err);
+        }
+        result
+    }
+
+    async fn run_incremental_inner(
+        &mut self,
+        on_progress: &impl Fn(SyncProgress),
+    ) -> Result<(), SyncError> {
         self.sync_story_points_field().await?;
         let watermark = checkpoint::get_meta(self.db, META_WATERMARK)?.unwrap_or_else(|| {
             // No prior sync — fall back to epoch so first incremental still works.
@@ -104,9 +122,9 @@ impl<'a, H: HttpDoer> SyncEngine<'a, H> {
         });
         // Jira Cloud JQL datetime quoting.
         let jql = format!(r#"updated >= "{watermark}" order by updated asc"#);
-        self.sync_issues(&jql, false, &on_progress).await?;
-        self.sync_sprints(&on_progress).await?;
-        self.rebuild_derived(&on_progress)?;
+        self.sync_issues(&jql, false, on_progress).await?;
+        self.sync_sprints(on_progress).await?;
+        self.rebuild_derived(on_progress)?;
         self.write_watermark()?;
         on_progress(SyncProgress {
             phase: SyncPhase::Idle,
@@ -637,12 +655,30 @@ fn jira_jql_datetime(raw: &str) -> String {
     }
 }
 
+fn emit_failed(on_progress: &impl Fn(SyncProgress), issues_synced: u64, err: &SyncError) {
+    on_progress(SyncProgress {
+        phase: SyncPhase::Failed,
+        projects_done: 0,
+        projects_total: 0,
+        issues_synced,
+        message: err.to_string(),
+    });
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::fake::FakeJira;
     use ag_db::{migrate, open_db};
     use tempfile::tempdir;
+
+    fn test_creds() -> JiraCredentials {
+        JiraCredentials {
+            site_url: "https://fake.atlassian.net".into(),
+            email: "dev@example.com".into(),
+            api_token: "token".into(),
+        }
+    }
 
     fn open_temp_migrated_db() -> (tempfile::TempDir, Connection) {
         let dir = tempdir().unwrap();
@@ -656,7 +692,7 @@ mod tests {
     async fn full_sync_is_resumable_after_interrupt() {
         let (_dir, db) = open_temp_migrated_db();
         let jira = FakeJira::from_fixtures_two_pages();
-        let mut engine = SyncEngine::new(&db, jira);
+        let mut engine = SyncEngine::new(&db, &test_creds(), jira);
 
         engine.fail_after_issues(1); // test hook: stop after first page
         let err = engine.run_full(|_| {}).await;
@@ -675,7 +711,7 @@ mod tests {
     async fn incremental_sync_only_fetches_updated_since_watermark() {
         let (_dir, db) = open_temp_migrated_db();
         let jira = FakeJira::from_fixtures_two_pages();
-        let mut engine = SyncEngine::new(&db, jira.clone());
+        let mut engine = SyncEngine::new(&db, &test_creds(), jira.clone());
 
         engine.run_full(|_| {}).await.unwrap();
 
@@ -704,7 +740,7 @@ mod tests {
     async fn full_sync_persists_story_points_field_map() {
         let (_dir, db) = open_temp_migrated_db();
         let jira = FakeJira::from_fixtures_two_pages();
-        let mut engine = SyncEngine::new(&db, jira);
+        let mut engine = SyncEngine::new(&db, &test_creds(), jira);
         engine.run_full(|_| {}).await.unwrap();
 
         let (id, status): (String, String) = db
@@ -716,5 +752,26 @@ mod tests {
             .unwrap();
         assert_eq!(id, "customfield_10016");
         assert_eq!(status, "resolved");
+    }
+
+    #[tokio::test]
+    async fn full_sync_emits_failed_phase_on_interrupt() {
+        use std::sync::atomic::{AtomicBool, Ordering};
+
+        let (_dir, db) = open_temp_migrated_db();
+        let jira = FakeJira::from_fixtures_two_pages();
+        let mut engine = SyncEngine::new(&db, &test_creds(), jira);
+        engine.fail_after_issues(1);
+
+        let saw_failed = AtomicBool::new(false);
+        let err = engine
+            .run_full(|p| {
+                if p.phase == SyncPhase::Failed {
+                    saw_failed.store(true, Ordering::SeqCst);
+                }
+            })
+            .await;
+        assert!(err.is_err());
+        assert!(saw_failed.load(Ordering::SeqCst));
     }
 }

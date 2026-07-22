@@ -8,6 +8,7 @@ mod progress;
 #[cfg(test)]
 mod fake;
 
+pub use ag_credentials::JiraCredentials;
 pub use engine::SyncEngine;
 pub use error::SyncError;
 pub use progress::{SyncPhase, SyncProgress};

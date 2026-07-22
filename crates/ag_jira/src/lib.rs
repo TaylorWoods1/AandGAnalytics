@@ -11,8 +11,8 @@ mod types;
 pub use client::{HttpDoer, HttpRequest, HttpResponse, JiraClient, ReqwestHttpDoer};
 pub use error::JiraError;
 pub use types::{
-    Changelog, ChangelogHistory, ChangelogItem, FieldSchema, Issue, IssueSearchPage, JiraField,
-    Myself, Project, Sprint,
+    Board, BoardPage, Changelog, ChangelogHistory, ChangelogItem, FieldSchema, Issue,
+    IssueSearchPage, JiraField, Myself, Project, Sprint, SprintPage,
 };
 
 #[cfg(test)]

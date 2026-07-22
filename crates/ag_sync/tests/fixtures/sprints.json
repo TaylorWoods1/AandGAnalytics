@@ -1,0 +1,16 @@
+{
+  "maxResults": 50,
+  "startAt": 0,
+  "isLast": true,
+  "values": [
+    {
+      "id": 10,
+      "name": "Sprint 1",
+      "state": "closed",
+      "startDate": "2024-01-01T00:00:00.000Z",
+      "endDate": "2024-01-14T00:00:00.000Z",
+      "completeDate": "2024-01-14T12:00:00.000Z",
+      "originBoardId": 1
+    }
+  ]
+}

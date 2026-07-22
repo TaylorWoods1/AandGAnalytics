@@ -11,7 +11,7 @@ use serde::Serialize;
 use serde_json::json;
 
 use crate::error::JiraError;
-use crate::types::{IssueSearchPage, JiraField, Myself, Project};
+use crate::types::{BoardPage, IssueSearchPage, JiraField, Myself, Project, SprintPage};
 
 /// Outbound HTTP request used by [`HttpDoer`].
 ///
@@ -219,6 +219,38 @@ impl<H: HttpDoer> JiraClient<H> {
     /// `GET /rest/api/3/project`
     pub async fn list_projects(&self) -> Result<Vec<Project>, JiraError> {
         let resp = self.get_json("/rest/api/3/project").await?;
+        Ok(serde_json::from_slice(&resp)?)
+    }
+
+    /// `GET /rest/agile/1.0/board`
+    pub async fn list_boards_page(&self, start_at: u64) -> Result<BoardPage, JiraError> {
+        let path = format!("/rest/agile/1.0/board?startAt={start_at}&maxResults=50");
+        let resp = self.get_json(&path).await?;
+        Ok(serde_json::from_slice(&resp)?)
+    }
+
+    /// `GET /rest/agile/1.0/board/{boardId}/sprint`
+    pub async fn list_board_sprints_page(
+        &self,
+        board_id: i64,
+        start_at: u64,
+    ) -> Result<SprintPage, JiraError> {
+        let path =
+            format!("/rest/agile/1.0/board/{board_id}/sprint?startAt={start_at}&maxResults=50");
+        let resp = self.get_json(&path).await?;
+        Ok(serde_json::from_slice(&resp)?)
+    }
+
+    /// `GET /rest/agile/1.0/sprint/{sprintId}/issue` — issue keys/ids only for linking.
+    pub async fn list_sprint_issues_page(
+        &self,
+        sprint_id: i64,
+        start_at: u64,
+    ) -> Result<IssueSearchPage, JiraError> {
+        let path = format!(
+            "/rest/agile/1.0/sprint/{sprint_id}/issue?startAt={start_at}&maxResults=50&fields=id,key"
+        );
+        let resp = self.get_json(&path).await?;
         Ok(serde_json::from_slice(&resp)?)
     }
 
@@ -430,5 +462,35 @@ mod tests {
         assert_eq!(fields[1].id, "customfield_10016");
         assert_eq!(fields[1].name, "Story Points");
         mock.assert();
+    }
+
+    #[tokio::test]
+    async fn list_boards_and_sprints_parse_fixtures() {
+        let server = httpmock::MockServer::start();
+        let boards = server.mock(|when, then| {
+            when.method("GET").path("/rest/agile/1.0/board");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(include_str!("../tests/fixtures/boards.json"));
+        });
+        let sprints = server.mock(|when, then| {
+            when.method("GET").path("/rest/agile/1.0/board/1/sprint");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(include_str!("../tests/fixtures/sprints.json"));
+        });
+
+        let client = JiraClient::new_for_test(&server.base_url(), "dev@example.com", "token");
+        let page = client.list_boards_page(0).await.unwrap();
+        assert_eq!(page.values.len(), 1);
+        assert_eq!(page.values[0].id, 1);
+
+        let sprint_page = client.list_board_sprints_page(1, 0).await.unwrap();
+        assert_eq!(sprint_page.values.len(), 1);
+        assert_eq!(sprint_page.values[0].id, 10);
+        assert_eq!(sprint_page.values[0].name, "Sprint 1");
+
+        boards.assert();
+        sprints.assert();
     }
 }

@@ -112,7 +112,33 @@ pub struct Project {
     pub name: String,
 }
 
-/// Sprint from the Agile API (used by Task 5).
+/// Board from `GET /rest/agile/1.0/board`.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Board {
+    pub id: i64,
+    pub name: String,
+    #[serde(default, rename = "type")]
+    pub board_type: Option<String>,
+}
+
+/// Paginated boards response.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BoardPage {
+    #[serde(default)]
+    pub values: Vec<Board>,
+    #[serde(default)]
+    pub is_last: Option<bool>,
+    #[serde(default)]
+    pub start_at: Option<u64>,
+    #[serde(default)]
+    pub max_results: Option<u64>,
+    #[serde(default)]
+    pub total: Option<u64>,
+}
+
+/// Sprint from the Agile API.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Sprint {
@@ -128,4 +154,20 @@ pub struct Sprint {
     pub complete_date: Option<String>,
     #[serde(default)]
     pub origin_board_id: Option<i64>,
+    #[serde(default)]
+    pub goal: Option<String>,
+}
+
+/// Paginated sprints response from a board.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SprintPage {
+    #[serde(default)]
+    pub values: Vec<Sprint>,
+    #[serde(default)]
+    pub is_last: Option<bool>,
+    #[serde(default)]
+    pub start_at: Option<u64>,
+    #[serde(default)]
+    pub max_results: Option<u64>,
 }

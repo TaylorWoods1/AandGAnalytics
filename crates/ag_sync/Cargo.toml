@@ -4,6 +4,7 @@ version = "0.1.0"
 edition.workspace = true
 
 [dependencies]
+ag_analytics = { path = "../ag_analytics" }
 ag_credentials = { path = "../ag_credentials" }
 ag_db = { path = "../ag_db" }
 ag_jira = { path = "../ag_jira" }

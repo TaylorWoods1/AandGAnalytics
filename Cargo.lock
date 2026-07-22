@@ -94,6 +94,7 @@ version = "0.1.0"
 name = "ag_sync"
 version = "0.1.0"
 dependencies = [
+ "ag_analytics",
  "ag_credentials",
  "ag_db",
  "ag_jira",

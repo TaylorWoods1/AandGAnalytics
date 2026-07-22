@@ -330,13 +330,21 @@ impl<'a, H: HttpDoer> SyncEngine<'a, H> {
     }
 
     fn rebuild_derived(&self, on_progress: &impl Fn(SyncProgress)) -> Result<(), SyncError> {
-        // Stub hook for later analytics tasks (Task 6+).
         on_progress(SyncProgress {
             phase: SyncPhase::Derived,
             projects_done: 0,
             projects_total: 0,
             issues_synced: self.issues_synced,
-            message: "derived rebuild skipped (stub)".into(),
+            message: "rebuilding derived analytics".into(),
+        });
+        ag_analytics::rebuild_all_derived(self.db, Utc::now())
+            .map_err(|e| SyncError::Other(e.to_string()))?;
+        on_progress(SyncProgress {
+            phase: SyncPhase::Derived,
+            projects_done: 0,
+            projects_total: 0,
+            issues_synced: self.issues_synced,
+            message: "derived analytics rebuilt".into(),
         });
         Ok(())
     }

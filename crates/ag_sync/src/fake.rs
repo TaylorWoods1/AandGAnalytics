@@ -34,11 +34,7 @@ impl FakeJira {
 
     /// Bodies of search requests (JSON text), in order.
     pub fn search_bodies(&self) -> Vec<String> {
-        self.inner
-            .last_search_bodies
-            .lock()
-            .expect("lock")
-            .clone()
+        self.inner.last_search_bodies.lock().expect("lock").clone()
     }
 }
 

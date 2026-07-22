@@ -9,9 +9,7 @@ use rusqlite::{params, Connection};
 use crate::changelog::{parse_jira_datetime, transitions_from_changelog, StatusTransition};
 use crate::error::AnalyticsError;
 use crate::events::{detect_handoffs, detect_reopens, detect_scope_changes, FieldChange};
-use crate::flow::{
-    cycle_and_lead, resolve_status_category, time_in_status, StatusFlowCategory,
-};
+use crate::flow::{cycle_and_lead, resolve_status_category, time_in_status, StatusFlowCategory};
 use crate::sprint::compute_sprint_metrics;
 use crate::throughput::daily_throughput;
 
@@ -141,10 +139,9 @@ fn load_status_category_overrides(
     conn: &Connection,
 ) -> Result<BTreeMap<String, StatusFlowCategory>, AnalyticsError> {
     let mut stmt = conn.prepare("SELECT key, value FROM meta WHERE key LIKE ?1")?;
-    let rows = stmt.query_map(
-        params![format!("{META_STATUS_CATEGORY_PREFIX}%")],
-        |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
-    )?;
+    let rows = stmt.query_map(params![format!("{META_STATUS_CATEGORY_PREFIX}%")], |row| {
+        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+    })?;
 
     let mut map = BTreeMap::new();
     for row in rows {
@@ -241,9 +238,11 @@ pub fn rebuild_throughput_derived(conn: &Connection) -> Result<(), AnalyticsErro
 
     let mut by_project: BTreeMap<String, Vec<(String, DateTime<Utc>)>> = BTreeMap::new();
     for (project_key, issue_id, completed_raw) in rows {
-        let Some(at) = parse_jira_datetime(&completed_raw)
-            .or_else(|| DateTime::parse_from_rfc3339(&completed_raw).ok().map(|d| d.with_timezone(&Utc)))
-        else {
+        let Some(at) = parse_jira_datetime(&completed_raw).or_else(|| {
+            DateTime::parse_from_rfc3339(&completed_raw)
+                .ok()
+                .map(|d| d.with_timezone(&Utc))
+        }) else {
             continue;
         };
         by_project
@@ -272,9 +271,8 @@ pub fn rebuild_throughput_derived(conn: &Connection) -> Result<(), AnalyticsErro
 pub fn rebuild_sprint_derived(conn: &Connection) -> Result<(), AnalyticsError> {
     conn.execute("DELETE FROM derived_sprint_metrics", [])?;
 
-    let mut sprint_stmt = conn.prepare(
-        "SELECT id, name, start_date, end_date, complete_date FROM sprints ORDER BY id",
-    )?;
+    let mut sprint_stmt = conn
+        .prepare("SELECT id, name, start_date, end_date, complete_date FROM sprints ORDER BY id")?;
     let sprints = sprint_stmt
         .query_map([], |row| {
             Ok((
@@ -299,10 +297,8 @@ pub fn rebuild_sprint_derived(conn: &Connection) -> Result<(), AnalyticsError> {
             load_sprint_scope_moves(conn, &sprint_id, sprint_name.as_deref(), start, end)?;
 
         let current_keys: HashSet<String> = members.iter().map(|m| m.key.clone()).collect();
-        let mut committed_keys: BTreeSet<String> = current_keys
-            .difference(&added_mid)
-            .cloned()
-            .collect();
+        let mut committed_keys: BTreeSet<String> =
+            current_keys.difference(&added_mid).cloned().collect();
         for key in &removed_mid {
             committed_keys.insert(key.clone());
         }
@@ -421,7 +417,11 @@ pub fn rebuild_event_derived(conn: &Connection) -> Result<(), AnalyticsError> {
 
     upsert_meta(conn, META_EVENTS_REOPENS, &reopens.to_string())?;
     upsert_meta(conn, META_EVENTS_HANDOFFS, &handoffs.to_string())?;
-    upsert_meta(conn, META_EVENTS_SCOPE_ADDED, &scope.scope_added.to_string())?;
+    upsert_meta(
+        conn,
+        META_EVENTS_SCOPE_ADDED,
+        &scope.scope_added.to_string(),
+    )?;
     upsert_meta(
         conn,
         META_EVENTS_SCOPE_REMOVED,
@@ -529,7 +529,12 @@ fn sprint_field_mentions(raw: Option<&str>, sprint_id: &str, sprint_name: Option
 }
 
 fn issue_is_done(member: &SprintMember) -> bool {
-    if member.resolved.as_deref().map(str::trim).is_some_and(|s| !s.is_empty()) {
+    if member
+        .resolved
+        .as_deref()
+        .map(str::trim)
+        .is_some_and(|s| !s.is_empty())
+    {
         return true;
     }
     if member
@@ -651,10 +656,31 @@ mod tests {
         .unwrap();
 
         let issues = [
-            ("1", "A-1", "Done", "done", Some(3.0), Some("2024-01-10T00:00:00.000+0000")),
-            ("2", "A-2", "Done", "done", Some(2.0), Some("2024-01-11T00:00:00.000+0000")),
+            (
+                "1",
+                "A-1",
+                "Done",
+                "done",
+                Some(3.0),
+                Some("2024-01-10T00:00:00.000+0000"),
+            ),
+            (
+                "2",
+                "A-2",
+                "Done",
+                "done",
+                Some(2.0),
+                Some("2024-01-11T00:00:00.000+0000"),
+            ),
             ("3", "A-3", "To Do", "new", None, None),
-            ("4", "A-4", "Done", "done", Some(1.0), Some("2024-01-12T00:00:00.000+0000")),
+            (
+                "4",
+                "A-4",
+                "Done",
+                "done",
+                Some(1.0),
+                Some("2024-01-12T00:00:00.000+0000"),
+            ),
         ];
         for (id, key, status, cat, pts, resolved) in issues {
             conn.execute(

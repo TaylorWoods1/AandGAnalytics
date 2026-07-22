@@ -27,11 +27,7 @@ pub fn detect_reopens(transitions: &[StatusTransition]) -> u32 {
     transitions
         .iter()
         .filter(|tr| {
-            let from_done = tr
-                .from_status
-                .as_deref()
-                .map(is_terminal)
-                .unwrap_or(false);
+            let from_done = tr.from_status.as_deref().map(is_terminal).unwrap_or(false);
             from_done && !is_terminal(&tr.to_status)
         })
         .count() as u32

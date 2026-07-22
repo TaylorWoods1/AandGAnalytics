@@ -67,10 +67,7 @@ impl<'a, H: HttpDoer> SyncEngine<'a, H> {
     }
 
     /// Full sync: projects → issues (paginated) → sprints → derived stub → watermark.
-    pub async fn run_full(
-        &mut self,
-        on_progress: impl Fn(SyncProgress),
-    ) -> Result<(), SyncError> {
+    pub async fn run_full(&mut self, on_progress: impl Fn(SyncProgress)) -> Result<(), SyncError> {
         self.issues_synced = 0;
         let result = self.run_full_inner(&on_progress).await;
         if let Err(ref err) = result {
@@ -359,13 +356,7 @@ impl<'a, H: HttpDoer> SyncEngine<'a, H> {
             // Store in a JQL-friendly form (trim timezone offset if present).
             let jql_wm = jira_jql_datetime(&wm);
             checkpoint::set_meta(self.db, META_WATERMARK, &jql_wm)?;
-            checkpoint::save_checkpoint(
-                self.db,
-                ISSUES_GLOBAL,
-                None,
-                None,
-                Some(wm.as_str()),
-            )?;
+            checkpoint::save_checkpoint(self.db, ISSUES_GLOBAL, None, None, Some(wm.as_str()))?;
         }
         Ok(())
     }

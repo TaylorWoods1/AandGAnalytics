@@ -12,7 +12,9 @@ mod throughput;
 pub use bottleneck::bottleneck_by_status;
 pub use changelog::{transitions_from_changelog, StatusTransition};
 pub use error::AnalyticsError;
-pub use events::{detect_handoffs, detect_reopens, detect_scope_changes, FieldChange, ScopeChangeStats};
+pub use events::{
+    detect_handoffs, detect_reopens, detect_scope_changes, FieldChange, ScopeChangeStats,
+};
 pub use flow::{
     cycle_and_lead, default_status_category, resolve_status_category, time_in_status,
     CycleLeadTimes, StatusFlowCategory, TimeInStatus,

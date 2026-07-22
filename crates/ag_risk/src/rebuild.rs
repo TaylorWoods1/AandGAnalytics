@@ -91,7 +91,11 @@ fn build_epic_input(
     let mut open_ages: Vec<i64> = Vec::new();
 
     for (_key, points, created_raw, status_category, status, resolved) in &rows {
-        if issue_is_open(status_category.as_deref(), status.as_deref(), resolved.as_deref()) {
+        if issue_is_open(
+            status_category.as_deref(),
+            status.as_deref(),
+            resolved.as_deref(),
+        ) {
             remaining_issues += 1;
             if let Some(p) = points {
                 remaining_points_sum += p;
@@ -266,9 +270,7 @@ fn load_recent_spillover_rate(conn: &Connection) -> Result<f64, RiskError> {
          WHERE committed IS NOT NULL AND committed > 0",
     )?;
     let rows = stmt
-        .query_map([], |row| {
-            Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?))
-        })?
+        .query_map([], |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)))?
         .collect::<Result<Vec<_>, _>>()?;
 
     if rows.is_empty() {

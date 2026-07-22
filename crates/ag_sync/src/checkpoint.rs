@@ -16,7 +16,10 @@ pub struct Checkpoint {
 }
 
 /// Load a checkpoint by scope key.
-pub fn load_checkpoint(conn: &Connection, scope_key: &str) -> Result<Option<Checkpoint>, SyncError> {
+pub fn load_checkpoint(
+    conn: &Connection,
+    scope_key: &str,
+) -> Result<Option<Checkpoint>, SyncError> {
     let row = conn
         .query_row(
             "SELECT scope_key, next_page_token, jql_cursor, last_updated_watermark, updated_at
@@ -87,11 +90,9 @@ pub fn clear_page_token(conn: &Connection, scope_key: &str) -> Result<(), SyncEr
 /// Read a meta value.
 pub fn get_meta(conn: &Connection, key: &str) -> Result<Option<String>, SyncError> {
     let v = conn
-        .query_row(
-            "SELECT value FROM meta WHERE key = ?1",
-            params![key],
-            |r| r.get(0),
-        )
+        .query_row("SELECT value FROM meta WHERE key = ?1", params![key], |r| {
+            r.get(0)
+        })
         .optional()?;
     Ok(v)
 }

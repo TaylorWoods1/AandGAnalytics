@@ -134,14 +134,38 @@ mod tests {
         let t4 = Utc.with_ymd_and_hms(2024, 1, 2, 11, 0, 0).unwrap(); // In Progress -> Done
 
         let transitions = vec![
-            StatusTransition { issue_id: "1".into(), from_status: Some("To Do".into()), to_status: "In Progress".into(), at: t1 },
-            StatusTransition { issue_id: "1".into(), from_status: Some("In Progress".into()), to_status: "Done".into(), at: t2 },
-            StatusTransition { issue_id: "1".into(), from_status: Some("Done".into()), to_status: "In Progress".into(), at: t3 },
-            StatusTransition { issue_id: "1".into(), from_status: Some("In Progress".into()), to_status: "Done".into(), at: t4 },
+            StatusTransition {
+                issue_id: "1".into(),
+                from_status: Some("To Do".into()),
+                to_status: "In Progress".into(),
+                at: t1,
+            },
+            StatusTransition {
+                issue_id: "1".into(),
+                from_status: Some("In Progress".into()),
+                to_status: "Done".into(),
+                at: t2,
+            },
+            StatusTransition {
+                issue_id: "1".into(),
+                from_status: Some("Done".into()),
+                to_status: "In Progress".into(),
+                at: t3,
+            },
+            StatusTransition {
+                issue_id: "1".into(),
+                from_status: Some("In Progress".into()),
+                to_status: "Done".into(),
+                at: t4,
+            },
         ];
 
         let tis = time_in_status(&transitions, Some(t4), t4);
-        let in_progress: i64 = tis.iter().filter(|r| r.status == "In Progress").map(|r| r.duration_secs).sum();
+        let in_progress: i64 = tis
+            .iter()
+            .filter(|r| r.status == "In Progress")
+            .map(|r| r.duration_secs)
+            .sum();
         assert_eq!(in_progress, 2 * 3600 + 2 * 3600); // 10-12 and 09-11
     }
 

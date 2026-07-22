@@ -93,8 +93,7 @@ impl HttpDoer for ReqwestHttpDoer {
         for (k, v) in &req.headers {
             let name = reqwest::header::HeaderName::from_bytes(k.as_bytes())
                 .map_err(|e| JiraError::Http(e.to_string()))?;
-            let value =
-                HeaderValue::from_str(v).map_err(|e| JiraError::Http(e.to_string()))?;
+            let value = HeaderValue::from_str(v).map_err(|e| JiraError::Http(e.to_string()))?;
             headers.insert(name, value);
         }
 
@@ -300,8 +299,7 @@ fn normalize_base_url(site_url: &str) -> String {
 }
 
 fn basic_auth_header(email: &str, api_token: &str) -> String {
-    let token = base64::engine::general_purpose::STANDARD
-        .encode(format!("{email}:{api_token}"));
+    let token = base64::engine::general_purpose::STANDARD.encode(format!("{email}:{api_token}"));
     format!("Basic {token}")
 }
 
@@ -367,10 +365,7 @@ mod tests {
                 .body_contains(r#""jql":"order by updated asc"#)
                 .matches(|req| {
                     let body = req.body.as_ref().map(|b| String::from_utf8_lossy(b));
-                    !body
-                        .as_deref()
-                        .unwrap_or("")
-                        .contains("nextPageToken")
+                    !body.as_deref().unwrap_or("").contains("nextPageToken")
                 });
             then.status(200)
                 .header("content-type", "application/json")
@@ -415,7 +410,9 @@ mod tests {
         let server = httpmock::MockServer::start();
         let mock = server.mock(|when, then| {
             when.method("GET").path("/rest/api/3/myself");
-            then.status(429).header("Retry-After", "2").body("slow down");
+            then.status(429)
+                .header("Retry-After", "2")
+                .body("slow down");
         });
 
         let client = JiraClient::new_for_test(&server.base_url(), "dev@example.com", "token");
@@ -441,7 +438,10 @@ mod tests {
             body: None,
         };
         let debug = format!("{req:?}");
-        assert!(!debug.contains("dXNlcjpzZWNyZXQ="), "secret leaked: {debug}");
+        assert!(
+            !debug.contains("dXNlcjpzZWNyZXQ="),
+            "secret leaked: {debug}"
+        );
         assert!(debug.contains("[REDACTED]"), "expected redaction: {debug}");
         assert!(debug.contains("Accept"));
     }

@@ -122,17 +122,14 @@ impl GeminiClient {
         let resp = self
             .http
             .post(&url)
-            .query(&[("key", self.api_key.as_str())])
+            .header("x-goog-api-key", &self.api_key)
             .json(&body)
             .send()
             .await
-            .map_err(|e| GeminiError::Http(e.to_string()))?;
+            .map_err(|e| self.http_err(e))?;
 
         let status = resp.status().as_u16();
-        let bytes = resp
-            .bytes()
-            .await
-            .map_err(|e| GeminiError::Http(e.to_string()))?;
+        let bytes = resp.bytes().await.map_err(|e| self.http_err(e))?;
 
         if !(200..300).contains(&status) {
             return Err(GeminiError::Api { status });
@@ -150,10 +147,10 @@ impl GeminiClient {
         let resp = self
             .http
             .get(&url)
-            .query(&[("key", self.api_key.as_str())])
+            .header("x-goog-api-key", &self.api_key)
             .send()
             .await
-            .map_err(|e| GeminiError::Http(e.to_string()))?;
+            .map_err(|e| self.http_err(e))?;
         let status = resp.status().as_u16();
         if (200..300).contains(&status) {
             Ok("gemini models reachable".into())
@@ -161,6 +158,19 @@ impl GeminiClient {
             Err(GeminiError::Api { status })
         }
     }
+
+    /// Map reqwest errors without embedding the API key (URL Display can leak `?key=`).
+    fn http_err(&self, err: reqwest::Error) -> GeminiError {
+        GeminiError::Http(redact_secret(&err.to_string(), &self.api_key))
+    }
+}
+
+/// Strip `secret` from error/display strings so it never reaches UI surfaces.
+fn redact_secret(message: &str, secret: &str) -> String {
+    if secret.is_empty() {
+        return message.to_string();
+    }
+    message.replace(secret, "[REDACTED]")
 }
 
 fn extract_candidate_text(envelope: &Value) -> Result<String, GeminiError> {
@@ -268,7 +278,8 @@ mod tests {
         let server = httpmock::MockServer::start();
         let mock = server.mock(|when, then| {
             when.method("POST")
-                .path(format!("/v1beta/models/{DEFAULT_MODEL}:generateContent"));
+                .path(format!("/v1beta/models/{DEFAULT_MODEL}:generateContent"))
+                .header("x-goog-api-key", "test-key");
             then.status(200)
                 .header("content-type", "application/json")
                 .body(
@@ -303,7 +314,8 @@ mod tests {
         let server = httpmock::MockServer::start();
         let mock = server.mock(|when, then| {
             when.method("POST")
-                .path(format!("/v1beta/models/{DEFAULT_MODEL}:generateContent"));
+                .path(format!("/v1beta/models/{DEFAULT_MODEL}:generateContent"))
+                .header("x-goog-api-key", "bad-key");
             then.status(401).body("unauthorized");
         });
 
@@ -314,6 +326,36 @@ mod tests {
             other => panic!("expected Api, got {other:?}"),
         }
         mock.assert();
+    }
+
+    /// Regression: transport failures must not embed the API key in Display/UI strings.
+    /// (Historical bug: `?key=` on the URL made `reqwest` errors leak the secret.)
+    #[tokio::test]
+    async fn failed_request_error_does_not_contain_api_key() {
+        const SECRET: &str = "SECRET_KEY_MUST_NOT_LEAK_xyz123";
+        // Connection refused — if key were on the query string, Display would include it.
+        let client = GeminiClient::new_for_test("http://127.0.0.1:1", SECRET).unwrap();
+        let err = client
+            .ask(&sample_pack(), "Where is the bottleneck?")
+            .await
+            .unwrap_err();
+        let msg = err.to_string();
+        assert!(
+            !msg.contains(SECRET),
+            "API key leaked into error string: {msg}"
+        );
+        assert!(
+            !msg.contains("key="),
+            "query-style key= must not appear in error: {msg}"
+        );
+    }
+
+    #[test]
+    fn redact_secret_strips_key_from_url_shaped_errors() {
+        let leaked = "error sending request for url (https://example/v1?key=SECRET_KEY_MUST_NOT_LEAK_xyz123)";
+        let cleaned = redact_secret(leaked, "SECRET_KEY_MUST_NOT_LEAK_xyz123");
+        assert!(!cleaned.contains("SECRET_KEY_MUST_NOT_LEAK_xyz123"));
+        assert!(cleaned.contains("[REDACTED]"));
     }
 
     #[test]

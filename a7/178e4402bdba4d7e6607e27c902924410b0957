@@ -1,0 +1,21 @@
+crates/ag_gemini/src/client.rs
+  s_50b12f63108532::t_e7eddc552cc942 125,129,132
+  s_50b12f63108532::t_dacb6397e67f90 150,153,161-173
+  s_50b12f63108532::t_bd8bab387177ab 281-282,317-318,331-358
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "a7178e4402bdba4d7e6607e27c902924410b0957",
+  "prompts": {},
+  "sessions": {
+    "s_50b12f63108532": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "6490c87f-c7ff-4ba0-b1c9-5aeaba5e0dd5",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

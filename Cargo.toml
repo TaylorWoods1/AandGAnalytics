@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = [
+  "crates/ag_db",
+  "crates/ag_jira",
+  "crates/ag_sync",
+  "crates/ag_analytics",
+  "crates/ag_risk",
+  "crates/ag_gemini",
+  "crates/ag_credentials",
+  "src-tauri",
+]
+
+[workspace.package]
+edition = "2021"
+license = "UNLICENSED"

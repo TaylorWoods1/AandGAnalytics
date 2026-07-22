@@ -1,2 +1,10 @@
 .worktrees/
 .superpowers/
+/target/
+**/target/
+node_modules/
+ui/dist/
+ui/coverage/
+.DS_Store
+*.log
+.vite/

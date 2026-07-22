@@ -1,0 +1,39 @@
+crates/ag_risk/src/error.rs
+  s_33047ba1bf99b7::t_8a95afe8cd9e9d 1-12
+crates/ag_analytics/Cargo.toml
+  s_33047ba1bf99b7::t_ccf7282f3f4b35 9
+crates/ag_risk/src/forecast.rs
+  s_33047ba1bf99b7::t_d6af2df0b3eafe 1-34,87,103,119-136
+  s_33047ba1bf99b7::t_6c950d6e8fa303 35-86,88-102,104-118
+crates/ag_risk/src/score.rs
+  s_33047ba1bf99b7::t_5cc9ff0bf375f2 1-21,33-57,111-112,133,135-167
+  s_33047ba1bf99b7::t_84e0d86c583251 22-32,58-110,113-132,134
+crates/ag_analytics/src/rebuild.rs
+  s_33047ba1bf99b7::t_8d107ebe77390b 24,30
+crates/ag_risk/src/rebuild.rs
+  s_33047ba1bf99b7::t_000ed7dd0eb694 211,216-218
+  s_33047ba1bf99b7::t_d60882175f0cf3 299-312,314-315
+  s_33047ba1bf99b7::t_e2e9c974eaa472 389-390
+  s_33047ba1bf99b7::t_c575a6a30b85d1 1-210,212-215,219-298,313,316-320
+  s_33047ba1bf99b7::t_077267dc6a1b4b 321-388,391-393
+crates/ag_risk/Cargo.toml
+  s_33047ba1bf99b7::t_b730eef59e2554 5-14
+crates/ag_risk/src/lib.rs
+  s_33047ba1bf99b7::t_f147b6d7f80e8b 3-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "a28424843b752c164b6d544386007297b87b1c70",
+  "prompts": {},
+  "sessions": {
+    "s_33047ba1bf99b7": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "ece445f1-81ef-44af-a526-bbe4bf29b232",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

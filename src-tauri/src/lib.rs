@@ -17,36 +17,25 @@ pub fn app_name() -> &'static str {
 /// Run the Tauri desktop application (requires `--features desktop`).
 #[cfg(feature = "desktop")]
 pub fn run() {
+    use std::sync::Arc;
+
     tauri::Builder::default()
-        .manage(AppState::production(default_db_path()))
+        .manage(Arc::new(AppState::production(default_db_path())))
         .setup(|app| {
             use tauri::{Emitter, Manager};
 
+            // Always spawn the scheduler at launch. Ticks no-op until
+            // `can_auto_sync()` (credentials + DB) so first-run `save_setup`
+            // in this session is picked up without restart.
             let handle = app.handle().clone();
-            let state = handle.state::<AppState>();
-            if state.can_auto_sync() {
-                let handle_for_sched = handle.clone();
-                tauri::async_runtime::spawn(async move {
-                    use tokio::time::{interval, MissedTickBehavior};
-
-                    let mut ticker = interval(scheduler::INCREMENTAL_INTERVAL);
-                    ticker.set_missed_tick_behavior(MissedTickBehavior::Skip);
-                    // Skip the immediate first tick so the first auto-sync waits 10 minutes.
-                    ticker.tick().await;
-                    loop {
-                        ticker.tick().await;
-                        let state = handle_for_sched.state::<AppState>();
-                        if !state.can_auto_sync() || state.is_running().unwrap_or(true) {
-                            continue;
-                        }
-                        let app2 = handle_for_sched.clone();
-                        let _ = commands::start_incremental_sync_inner(&state, move |p| {
-                            let _ = app2.emit("sync-progress", &p);
-                        })
-                        .await;
-                    }
-                });
-            }
+            let state = Arc::clone(app.state::<Arc<AppState>>().inner());
+            tauri::async_runtime::spawn(scheduler::run_incremental_scheduler_loop(
+                state,
+                scheduler::INCREMENTAL_INTERVAL,
+                move |p| {
+                    let _ = handle.emit("sync-progress", &p);
+                },
+            ));
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -117,7 +117,7 @@ mod tauri_cmds {
 
     #[tauri::command]
     pub fn save_setup(
-        state: State<'_, AppState>,
+        state: State<'_, std::sync::Arc<AppState>>,
         jira: JiraCredentialsDto,
         gemini: GeminiCredentialsDto,
     ) -> Result<(), String> {
@@ -125,7 +125,9 @@ mod tauri_cmds {
     }
 
     #[tauri::command]
-    pub async fn validate_setup(state: State<'_, AppState>) -> Result<SetupStatus, String> {
+    pub async fn validate_setup(
+        state: State<'_, std::sync::Arc<AppState>>,
+    ) -> Result<SetupStatus, String> {
         validate_setup_inner(&state).await
     }
 }

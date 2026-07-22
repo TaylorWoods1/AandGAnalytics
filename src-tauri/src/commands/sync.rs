@@ -102,7 +102,10 @@ mod tauri_cmds {
     use tauri::{AppHandle, Emitter, State};
 
     #[tauri::command]
-    pub async fn start_full_sync(app: AppHandle, state: State<'_, AppState>) -> Result<(), String> {
+    pub async fn start_full_sync(
+        app: AppHandle,
+        state: State<'_, std::sync::Arc<AppState>>,
+    ) -> Result<(), String> {
         start_full_sync_inner(&state, move |p| {
             let _ = app.emit("sync-progress", &p);
         })
@@ -112,7 +115,7 @@ mod tauri_cmds {
     #[tauri::command]
     pub async fn start_incremental_sync(
         app: AppHandle,
-        state: State<'_, AppState>,
+        state: State<'_, std::sync::Arc<AppState>>,
     ) -> Result<(), String> {
         start_incremental_sync_inner(&state, move |p| {
             let _ = app.emit("sync-progress", &p);
@@ -121,7 +124,9 @@ mod tauri_cmds {
     }
 
     #[tauri::command]
-    pub fn get_sync_progress(state: State<'_, AppState>) -> Result<SyncProgress, String> {
+    pub fn get_sync_progress(
+        state: State<'_, std::sync::Arc<AppState>>,
+    ) -> Result<SyncProgress, String> {
         get_sync_progress_inner(&state)
     }
 }

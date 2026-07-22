@@ -675,7 +675,7 @@ mod tauri_cmds {
 
     #[tauri::command]
     pub fn get_flow_metrics(
-        state: State<'_, AppState>,
+        state: State<'_, std::sync::Arc<AppState>>,
         filter: MetricsFilter,
     ) -> Result<FlowMetricsDto, String> {
         get_flow_metrics_inner(&state, filter)
@@ -683,7 +683,7 @@ mod tauri_cmds {
 
     #[tauri::command]
     pub fn get_sprint_metrics(
-        state: State<'_, AppState>,
+        state: State<'_, std::sync::Arc<AppState>>,
         filter: MetricsFilter,
     ) -> Result<Vec<SprintMetricsDto>, String> {
         get_sprint_metrics_inner(&state, filter)
@@ -691,7 +691,7 @@ mod tauri_cmds {
 
     #[tauri::command]
     pub fn get_epic_risk(
-        state: State<'_, AppState>,
+        state: State<'_, std::sync::Arc<AppState>>,
         filter: MetricsFilter,
     ) -> Result<Vec<EpicRiskDto>, String> {
         get_epic_risk_inner(&state, filter)
@@ -699,7 +699,7 @@ mod tauri_cmds {
 
     #[tauri::command]
     pub fn get_finish_by(
-        state: State<'_, AppState>,
+        state: State<'_, std::sync::Arc<AppState>>,
         epic_key: String,
         target_date: String,
     ) -> Result<FinishByResultDto, String> {
@@ -708,7 +708,7 @@ mod tauri_cmds {
 
     #[tauri::command]
     pub fn list_issues(
-        state: State<'_, AppState>,
+        state: State<'_, std::sync::Arc<AppState>>,
         filter: MetricsFilter,
         page: Page,
     ) -> Result<IssuePageDto, String> {

@@ -106,3 +106,162 @@ h1 {
 .sync-banner button {
   margin-top: 0.5rem;
 }
+
+.dashboard-page {
+  max-width: 56rem;
+}
+
+.dashboard-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-nav {
+  display: flex;
+  gap: 1rem;
+}
+
+.dashboard-nav a {
+  color: #1f4b6e;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.dashboard-nav a[aria-current='page'] {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.filter-bar {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.5rem 0.75rem;
+  margin: 1.25rem 0 1.5rem;
+  padding: 0.9rem;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid #d5dde6;
+  border-radius: 0.4rem;
+}
+
+.filter-bar label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #5b6673;
+  grid-column: span 1;
+}
+
+.filter-bar input {
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #c5ced8;
+  border-radius: 0.3rem;
+  background: #fff;
+  font: inherit;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.85rem;
+  margin: 1.25rem 0;
+}
+
+.summary-grid article {
+  padding: 0.85rem 0.95rem;
+  background: rgba(255, 255, 255, 0.72);
+  border-left: 3px solid #1f4b6e;
+}
+
+.summary-grid h2 {
+  margin: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5b6673;
+  font-weight: 600;
+}
+
+.summary-grid p {
+  margin: 0.35rem 0 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.metric-chart {
+  margin: 1.75rem 0;
+}
+
+.metric-chart h2,
+.data-table h2 {
+  font-size: 1.05rem;
+  margin: 0 0 0.75rem;
+}
+
+.metric-chart__empty {
+  color: #5b6673;
+}
+
+.metric-chart__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.metric-chart__row {
+  display: grid;
+  grid-template-columns: minmax(6rem, 10rem) 1fr minmax(4rem, auto);
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.metric-chart__label {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-chart__track {
+  height: 0.65rem;
+  background: #dfe6ee;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.metric-chart__fill {
+  height: 100%;
+  background: #1f4b6e;
+  border-radius: inherit;
+}
+
+.metric-chart__value {
+  font-size: 0.85rem;
+  color: #5b6673;
+  text-align: right;
+}
+
+.data-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.data-table th,
+.data-table td {
+  text-align: left;
+  padding: 0.5rem 0.4rem;
+  border-bottom: 1px solid #d5dde6;
+}
+
+.data-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5b6673;
+}

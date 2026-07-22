@@ -59,3 +59,57 @@ export function subscribeSyncProgress(
     onProgress(event.payload);
   });
 }
+
+export type MetricsFilter = {
+  project_keys: string[] | null;
+  from: string | null;
+  to: string | null;
+  issue_types: string[] | null;
+  assignee_ids: string[] | null;
+};
+
+export type Bottleneck = {
+  status: string;
+  total_secs: number;
+};
+
+export type ThroughputPoint = {
+  day: string;
+  completed_count: number;
+};
+
+export type FlowMetrics = {
+  cycle_p50_secs: number | null;
+  cycle_p85_secs: number | null;
+  lead_p50_secs: number | null;
+  lead_p85_secs: number | null;
+  flow_efficiency: number | null;
+  throughput: ThroughputPoint[];
+  bottlenecks: Bottleneck[];
+  reopens: number;
+  handoffs: number;
+};
+
+export type EpicRisk = {
+  epic_key: string;
+  score: number;
+  finish_by_probability: number | null;
+  drivers: string[];
+  assumptions: string[];
+};
+
+export const emptyMetricsFilter = (): MetricsFilter => ({
+  project_keys: null,
+  from: null,
+  to: null,
+  issue_types: null,
+  assignee_ids: null,
+});
+
+export async function getFlowMetrics(filter: MetricsFilter): Promise<FlowMetrics> {
+  return tauriInvoke<FlowMetrics>('get_flow_metrics', { filter });
+}
+
+export async function getEpicRisk(filter: MetricsFilter): Promise<EpicRisk[]> {
+  return tauriInvoke<EpicRisk[]>('get_epic_risk', { filter });
+}

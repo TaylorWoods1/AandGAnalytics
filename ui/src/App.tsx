@@ -1,17 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { hasCredentials } from './lib/tauri';
+import FlowPage from './pages/FlowPage';
+import HomePage from './pages/HomePage';
 import SetupPage from './pages/SetupPage';
 import SyncPage from './pages/SyncPage';
-
-function HomePlaceholder() {
-  return (
-    <main className="page">
-      <h1>AandG Analytics</h1>
-      <p>Dashboards will appear here after sync.</p>
-    </main>
-  );
-}
 
 function RequireCredentials({ children }: { children: ReactNode }) {
   const location = useLocation();
@@ -59,10 +52,18 @@ export default function App() {
         }
       />
       <Route
+        path="/flow"
+        element={
+          <RequireCredentials>
+            <FlowPage />
+          </RequireCredentials>
+        }
+      />
+      <Route
         path="/"
         element={
           <RequireCredentials>
-            <HomePlaceholder />
+            <HomePage />
           </RequireCredentials>
         }
       />

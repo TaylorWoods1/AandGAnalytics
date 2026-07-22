@@ -17,6 +17,8 @@ vi.mock('./lib/tauri', async () => {
   return {
     ...actual,
     hasCredentials: vi.fn(),
+    getFlowMetrics: vi.fn(),
+    getEpicRisk: vi.fn(),
   };
 });
 
@@ -37,8 +39,20 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: /setup/i })).toBeInTheDocument();
   });
 
-  it('shows home placeholder when credentials exist', async () => {
+  it('shows home dashboard when credentials exist', async () => {
     vi.mocked(tauri.hasCredentials).mockResolvedValue(true);
+    vi.mocked(tauri.getFlowMetrics).mockResolvedValue({
+      cycle_p50_secs: null,
+      cycle_p85_secs: null,
+      lead_p50_secs: null,
+      lead_p85_secs: null,
+      flow_efficiency: null,
+      throughput: [],
+      bottlenecks: [],
+      reopens: 0,
+      handoffs: 0,
+    });
+    vi.mocked(tauri.getEpicRisk).mockResolvedValue([]);
 
     render(
       <MemoryRouter initialEntries={['/']}>

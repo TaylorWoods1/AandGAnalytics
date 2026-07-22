@@ -1,0 +1,108 @@
+:root {
+  color-scheme: light;
+  font-family: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  color: #1c2430;
+  background: linear-gradient(160deg, #eef3f7 0%, #f7f4ef 55%, #e8ece8 100%);
+  min-height: 100%;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+.page {
+  max-width: 40rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 3rem;
+}
+
+h1 {
+  font-family: 'IBM Plex Serif', Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+}
+
+.setup-page form {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.setup-page label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-top: 0.5rem;
+}
+
+.setup-page input {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #c5ced8;
+  border-radius: 0.35rem;
+  background: #fff;
+  font: inherit;
+}
+
+.setup-page button,
+.sync-banner button {
+  margin-top: 1rem;
+  justify-self: start;
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: #1f4b6e;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.setup-page button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.form-error,
+.sync-banner--error {
+  color: #8a1f1f;
+}
+
+.sync-page dl {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1.5rem 0;
+}
+
+.sync-page dt {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5b6673;
+}
+
+.sync-page dd {
+  margin: 0.15rem 0 0;
+  font-size: 1.1rem;
+}
+
+.sync-banner {
+  margin: 1rem 0;
+  padding: 0.75rem 0.9rem;
+  border-left: 3px solid #1f4b6e;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.sync-banner--error {
+  border-left-color: #8a1f1f;
+}
+
+.sync-banner button {
+  margin-top: 0.5rem;
+}

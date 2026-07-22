@@ -11,3 +11,35 @@ path = "src/main.rs"
 [lib]
 name = "aandg_analytics_tauri"
 path = "src/lib.rs"
+
+[features]
+default = []
+# Full desktop shell (webview / native). Enable with `--features desktop`.
+# Kept optional so `cargo test --workspace` stays green without Tauri system deps (e.g. CI).
+desktop = ["dep:tauri", "dep:tauri-build"]
+
+[build-dependencies]
+tauri-build = { version = "=2.5.3", optional = true }
+
+[dependencies]
+ag_analytics = { path = "../crates/ag_analytics" }
+ag_credentials = { path = "../crates/ag_credentials" }
+ag_db = { path = "../crates/ag_db" }
+ag_jira = { path = "../crates/ag_jira" }
+ag_risk = { path = "../crates/ag_risk" }
+ag_sync = { path = "../crates/ag_sync" }
+chrono = { version = "=0.4.38", default-features = false, features = ["clock", "std", "serde"] }
+dirs = "5.0.1"
+reqwest = { version = "=0.11.27", default-features = false, features = ["json", "rustls-tls"] }
+rusqlite = { version = "0.32.1", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+tauri = { version = "=2.9.5", optional = true }
+tokio = { version = "=1.40.0", features = ["macros", "rt-multi-thread", "sync", "time"] }
+# Pins for Rust/Cargo 1.84.1 (avoid edition2024 / MSRV 1.85+ transitive crates)
+idna = "=0.5.0"
+url = "=2.5.2"
+indexmap = "=2.7.1"
+
+[dev-dependencies]
+tempfile = "=3.14.0"

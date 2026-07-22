@@ -52,6 +52,8 @@ pub fn run() {
             commands::preview_context_pack,
             commands::ask_ai,
             commands::get_suggested_prompts,
+            commands::rebuild_derived_cmd,
+            commands::full_resync,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AandG Analytics");

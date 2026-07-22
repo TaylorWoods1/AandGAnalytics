@@ -107,6 +107,47 @@ h1 {
   margin-top: 0.5rem;
 }
 
+.sync-banner__detail {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  opacity: 0.85;
+}
+
+.maintenance-actions {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(31, 75, 110, 0.2);
+}
+
+.maintenance-actions h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.1rem;
+}
+
+.maintenance-actions p {
+  margin: 0 0 0.75rem;
+  color: #5b6673;
+  max-width: 36rem;
+}
+
+.maintenance-actions__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.maintenance-actions__buttons button {
+  margin-top: 0;
+  padding: 0.55rem 0.9rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: #1f4b6e;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .dashboard-page {
   max-width: 56rem;
 }

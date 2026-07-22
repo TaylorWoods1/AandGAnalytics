@@ -84,7 +84,16 @@ pub async fn validate_setup_inner(state: &AppState) -> Result<SetupStatus, Strin
 
 async fn probe_jira(creds: &JiraCredentials) -> Result<String, String> {
     let client = JiraClient::new(creds).map_err(|e| e.to_string())?;
-    let me = client.get_myself().await.map_err(|e| e.to_string())?;
+    let me = match client.get_myself().await {
+        Ok(me) => me,
+        Err(ag_jira::JiraError::Unauthorized) => {
+            return Err("unauthorized (HTTP 401): update your Jira API token".into());
+        }
+        Err(ag_jira::JiraError::Forbidden) => {
+            return Err("forbidden (HTTP 403): token lacks permission for this site".into());
+        }
+        Err(e) => return Err(e.to_string()),
+    };
     let label = me
         .display_name
         .or(me.email_address)

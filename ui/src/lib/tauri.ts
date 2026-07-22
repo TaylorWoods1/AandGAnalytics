@@ -38,6 +38,16 @@ export async function startFullSync(): Promise<void> {
   await tauriInvoke('start_full_sync');
 }
 
+/** Rebuild derived analytics tables from raw SQLite (keeps raw issues). */
+export async function rebuildDerived(): Promise<void> {
+  await tauriInvoke('rebuild_derived');
+}
+
+/** Reset sync checkpoints (keeps credentials) and start a full sync. */
+export async function fullResync(): Promise<void> {
+  await tauriInvoke('full_resync');
+}
+
 export async function getSyncProgress(): Promise<SyncProgress> {
   return tauriInvoke<SyncProgress>('get_sync_progress');
 }

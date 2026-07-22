@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SyncBanner from '../components/SyncBanner';
 import {
+  fullResync,
   getSyncProgress,
+  rebuildDerived,
   startFullSync,
   subscribeSyncProgress,
   type SyncProgress,
@@ -88,6 +90,24 @@ export default function SyncPage() {
     }
   }
 
+  async function onRebuildDerived() {
+    setError(null);
+    try {
+      await rebuildDerived();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function onFullResync() {
+    setError(null);
+    try {
+      await fullResync();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
   return (
     <main className="page sync-page">
       <h1>Sync</h1>
@@ -120,6 +140,21 @@ export default function SyncPage() {
           ) : null}
         </>
       ) : null}
+
+      <section className="maintenance-actions" aria-label="Maintenance">
+        <h2>Maintenance</h2>
+        <p>
+          Rebuild analytics from local raw data, or reset sync progress and pull from Jira again.
+        </p>
+        <div className="maintenance-actions__buttons">
+          <button type="button" onClick={() => void onRebuildDerived()}>
+            Rebuild derived
+          </button>
+          <button type="button" onClick={() => void onFullResync()}>
+            Full re-sync
+          </button>
+        </div>
+      </section>
     </main>
   );
 }

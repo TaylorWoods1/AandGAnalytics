@@ -1,6 +1,10 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { isCredentialError } from '../lib/syncErrors';
 import { saveSetup, startFullSync, validateSetup } from '../lib/tauri';
+
+const CREDENTIAL_SETUP_COPY =
+  'Jira returned 401/403 — your site URL, email, or API token was rejected. Update the fields below and save again.';
 
 export default function SetupPage() {
   const navigate = useNavigate();
@@ -9,6 +13,7 @@ export default function SetupPage() {
   const [jiraToken, setJiraToken] = useState('');
   const [geminiKey, setGeminiKey] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [credentialRejected, setCredentialRejected] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const canContinue = useMemo(
@@ -28,6 +33,7 @@ export default function SetupPage() {
 
     setBusy(true);
     setError(null);
+    setCredentialRejected(false);
     try {
       await saveSetup(
         {
@@ -43,12 +49,20 @@ export default function SetupPage() {
           !status.jira_ok ? `Jira: ${status.jira_message}` : null,
           !status.gemini_ok ? `Gemini: ${status.gemini_message}` : null,
         ].filter(Boolean);
-        throw new Error(parts.join(' · ') || 'Credential validation failed');
+        const message = parts.join(' · ') || 'Credential validation failed';
+        if (!status.jira_ok && isCredentialError(status.jira_message)) {
+          setCredentialRejected(true);
+        }
+        throw new Error(message);
       }
       await startFullSync();
       navigate('/sync');
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const message = err instanceof Error ? err.message : String(err);
+      if (isCredentialError(message)) {
+        setCredentialRejected(true);
+      }
+      setError(message);
     } finally {
       setBusy(false);
     }
@@ -100,9 +114,10 @@ export default function SetupPage() {
         />
 
         {error ? (
-          <p role="alert" className="form-error">
-            {error}
-          </p>
+          <div role="alert" className="form-error">
+            {credentialRejected ? <p>{CREDENTIAL_SETUP_COPY}</p> : null}
+            <p>{error}</p>
+          </div>
         ) : null}
 
         <button type="submit" disabled={!canContinue || busy}>

@@ -1,4 +1,19 @@
 //! Jira Cloud REST client for AandG Analytics.
+//!
+//! Provides a fixture-testable [`JiraClient`] over a pluggable [`HttpDoer`].
+//! Authorization headers are redacted in [`HttpRequest`]'s `Debug` impl and
+//! must never be logged in cleartext.
+
+mod client;
+mod error;
+mod types;
+
+pub use client::{HttpDoer, HttpRequest, HttpResponse, JiraClient, ReqwestHttpDoer};
+pub use error::JiraError;
+pub use types::{
+    Changelog, ChangelogHistory, ChangelogItem, FieldSchema, Issue, IssueSearchPage, JiraField,
+    Myself, Project, Sprint,
+};
 
 #[cfg(test)]
 mod tests {

@@ -1,0 +1,21 @@
+[
+  {
+    "id": "summary",
+    "name": "Summary",
+    "custom": false,
+    "schema": {
+      "type": "string",
+      "system": "summary"
+    }
+  },
+  {
+    "id": "customfield_10016",
+    "name": "Story Points",
+    "custom": true,
+    "schema": {
+      "type": "number",
+      "custom": "com.pyxis.greenhopper.jira:jsw-story-points",
+      "customId": 10016
+    }
+  }
+]

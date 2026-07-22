@@ -1,9 +1,7 @@
 //! Keychain credential wrapper for AandG Analytics.
+//!
+//! Secrets must never be written to logs or persisted outside the credential store.
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn workspace_compiles_and_credentials_crate_is_wired() {
-        assert_eq!(env!("CARGO_PKG_NAME"), "ag_credentials");
-    }
-}
+mod store;
+
+pub use store::*;

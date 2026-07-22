@@ -6,6 +6,7 @@ edition.workspace = true
 [dependencies]
 ag_db = { path = "../ag_db" }
 ag_jira = { path = "../ag_jira" }
+ag_risk = { path = "../ag_risk" }
 chrono = { version = "=0.4.38", default-features = false, features = ["clock", "std"] }
 rusqlite = { version = "0.32.1", features = ["bundled"] }
 thiserror = "2.0.19"

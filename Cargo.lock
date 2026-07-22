@@ -38,6 +38,7 @@ version = "0.1.0"
 dependencies = [
  "ag_db",
  "ag_jira",
+ "ag_risk",
  "chrono",
  "rusqlite",
  "tempfile",
@@ -89,6 +90,14 @@ dependencies = [
 [[package]]
 name = "ag_risk"
 version = "0.1.0"
+dependencies = [
+ "ag_db",
+ "chrono",
+ "rusqlite",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.19",
+]
 
 [[package]]
 name = "ag_sync"

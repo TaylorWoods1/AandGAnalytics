@@ -21,12 +21,13 @@ const META_EVENTS_HANDOFFS: &str = "derived_events:handoffs";
 const META_EVENTS_SCOPE_ADDED: &str = "derived_events:scope_added";
 const META_EVENTS_SCOPE_REMOVED: &str = "derived_events:scope_removed";
 
-/// Rebuild all derived analytics tables (flow, throughput, sprint, events).
+/// Rebuild all derived analytics tables (flow, throughput, sprint, events, epic risk).
 pub fn rebuild_all_derived(conn: &Connection, now: DateTime<Utc>) -> Result<(), AnalyticsError> {
     rebuild_flow_derived(conn, now)?;
     rebuild_throughput_derived(conn)?;
     rebuild_sprint_derived(conn)?;
     rebuild_event_derived(conn)?;
+    ag_risk::rebuild_epic_risk(conn, now).map_err(|e| AnalyticsError::Other(e.to_string()))?;
     Ok(())
 }
 

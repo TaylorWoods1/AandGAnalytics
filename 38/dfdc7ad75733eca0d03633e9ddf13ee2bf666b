@@ -1,0 +1,23 @@
+crates/ag_credentials/src/store.rs
+  s_5ec5b35a1d4a85::t_2952f014f4190f 4-6,8-175,177-221,253-270
+  s_5ec5b35a1d4a85::t_d694a7890244f8 176
+  s_5ec5b35a1d4a85::t_e47cc3da34fad6 1-3,7,222-252,271-272
+crates/ag_credentials/src/lib.rs
+  s_5ec5b35a1d4a85::t_7de77d351ad0a5 2-3,5-7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "38dfdc7ad75733eca0d03633e9ddf13ee2bf666b",
+  "prompts": {},
+  "sessions": {
+    "s_5ec5b35a1d4a85": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "01f8d964-9b7c-44f7-a787-496552df4001",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

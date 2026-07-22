@@ -1,0 +1,37 @@
+ui/src/pages/SprintsPage.tsx
+  s_777f773bcb8816::t_b5e51241c26a92 1-99
+ui/src/pages/SprintsPage.test.tsx
+  s_777f773bcb8816::t_9ad95f05d032cf 1-49
+ui/src/App.tsx
+  s_777f773bcb8816::t_790dc1768d247d 65-79
+  s_777f773bcb8816::t_c81032419e7a4b 4,8
+ui/src/styles.css
+  s_777f773bcb8816::t_fe84b18c205be0 268-348
+ui/src/pages/EpicsPage.test.tsx
+  s_777f773bcb8816::t_0357ecdf05de4d 1-60
+ui/src/pages/EpicsPage.tsx
+  s_777f773bcb8816::t_27e17771a75ff1 1-183
+ui/src/lib/tauri.ts
+  s_777f773bcb8816::t_8a7c864c794a46 93-103,112-116,129-132,136,138,141
+  s_777f773bcb8816::t_16c8d7446b877c 139-140
+ui/src/pages/FlowPage.tsx
+  s_777f773bcb8816::t_10341021ed3efb 47-48
+ui/src/pages/HomePage.tsx
+  s_777f773bcb8816::t_e6a48b03531de1 58-59
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "24374b31be3abed8e020c940af5d0164c854b24d",
+  "prompts": {},
+  "sessions": {
+    "s_777f773bcb8816": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "8033d2cb-fb8c-4ba3-b18e-1b8790bd461b",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

@@ -48,6 +48,7 @@ export default function SprintsPage() {
             Sprints
           </Link>
           <Link to="/epics">Epics</Link>
+          <Link to="/explore">Explore</Link>
         </nav>
       </header>
 

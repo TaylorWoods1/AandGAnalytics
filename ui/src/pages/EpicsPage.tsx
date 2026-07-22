@@ -86,6 +86,7 @@ export default function EpicsPage() {
           <Link to="/epics" aria-current="page">
             Epics
           </Link>
+          <Link to="/explore">Explore</Link>
         </nav>
       </header>
 

@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { hasCredentials } from './lib/tauri';
 import EpicsPage from './pages/EpicsPage';
+import ExplorePage from './pages/ExplorePage';
 import FlowPage from './pages/FlowPage';
 import HomePage from './pages/HomePage';
 import SetupPage from './pages/SetupPage';
@@ -74,6 +75,14 @@ export default function App() {
         element={
           <RequireCredentials>
             <EpicsPage />
+          </RequireCredentials>
+        }
+      />
+      <Route
+        path="/explore"
+        element={
+          <RequireCredentials>
+            <ExplorePage />
           </RequireCredentials>
         }
       />

@@ -46,6 +46,7 @@ export default function FlowPage() {
           </Link>
           <Link to="/sprints">Sprints</Link>
           <Link to="/epics">Epics</Link>
+          <Link to="/explore">Explore</Link>
         </nav>
       </header>
 

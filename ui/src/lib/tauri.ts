@@ -114,6 +114,27 @@ export type FinishByResult = {
   assumptions: string[];
 };
 
+export type Page = {
+  offset: number;
+  limit: number;
+};
+
+export type IssueRow = {
+  key: string;
+  summary: string | null;
+  project_key: string;
+  status: string | null;
+  assignee: string | null;
+  story_points: number | null;
+  cycle_secs: number | null;
+  updated: string;
+};
+
+export type IssuePage = {
+  items: IssueRow[];
+  total: number;
+};
+
 export const emptyMetricsFilter = (): MetricsFilter => ({
   project_keys: null,
   from: null,
@@ -139,4 +160,8 @@ export async function getFinishBy(epicKey: string, targetDate: string): Promise<
     epic_key: epicKey,
     target_date: targetDate,
   });
+}
+
+export async function listIssues(filter: MetricsFilter, page: Page): Promise<IssuePage> {
+  return tauriInvoke<IssuePage>('list_issues', { filter, page });
 }

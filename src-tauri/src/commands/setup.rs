@@ -93,21 +93,8 @@ async fn probe_jira(creds: &JiraCredentials) -> Result<String, String> {
 }
 
 async fn probe_gemini(creds: &GeminiCredentials) -> Result<String, String> {
-    // Lightweight probe until `ag_gemini` lands (Task 14): list models.
-    let client = reqwest::Client::new();
-    let resp = client
-        .get("https://generativelanguage.googleapis.com/v1beta/models")
-        .query(&[("key", creds.api_key.as_str())])
-        .send()
-        .await
-        .map_err(|e| format!("gemini request failed: {e}"))?;
-    let status = resp.status();
-    if status.is_success() {
-        Ok("gemini models reachable".into())
-    } else {
-        // Do not include response body (may echo request metadata); never log the key.
-        Err(format!("gemini probe failed: HTTP {status}"))
-    }
+    let client = ag_gemini::GeminiClient::new(creds).map_err(|e| e.to_string())?;
+    client.probe().await.map_err(|e| e.to_string())
 }
 
 #[cfg(feature = "desktop")]

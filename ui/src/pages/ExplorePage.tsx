@@ -56,6 +56,7 @@ export default function ExplorePage() {
           <Link to="/explore" aria-current="page">
             Explore
           </Link>
+          <Link to="/ask">Ask AI</Link>
         </nav>
       </header>
 

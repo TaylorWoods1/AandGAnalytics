@@ -1,9 +1,14 @@
 //! Tauri IPC command handlers (library-testable `*_inner` + optional desktop wrappers).
 
+pub mod ai;
 pub mod metrics;
 pub mod setup;
 pub mod sync;
 
+pub use ai::{
+    ask_ai_inner, get_suggested_prompts_inner, preview_context_pack_inner, ContextPackDto,
+    GeminiAnswerDto, SuggestedPromptsDto,
+};
 pub use metrics::{
     get_epic_risk_inner, get_finish_by_inner, get_flow_metrics_inner, get_sprint_metrics_inner,
     list_issues_inner, BottleneckDto, EpicRiskDto, FinishByResultDto, FlowMetricsDto, IssuePageDto,
@@ -14,6 +19,8 @@ pub use setup::{
 };
 pub use sync::{get_sync_progress_inner, start_full_sync_inner, start_incremental_sync_inner};
 
+#[cfg(feature = "desktop")]
+pub use ai::{ask_ai, get_suggested_prompts, preview_context_pack};
 #[cfg(feature = "desktop")]
 pub use metrics::{
     get_epic_risk, get_finish_by, get_flow_metrics, get_sprint_metrics, list_issues,

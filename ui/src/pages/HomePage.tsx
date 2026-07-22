@@ -58,6 +58,7 @@ export default function HomePage() {
           <Link to="/sprints">Sprints</Link>
           <Link to="/epics">Epics</Link>
           <Link to="/explore">Explore</Link>
+          <Link to="/ask">Ask AI</Link>
         </nav>
       </header>
 

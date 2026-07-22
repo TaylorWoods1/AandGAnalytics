@@ -358,3 +358,126 @@ button.linkish {
   font-size: 1.25rem;
   font-weight: 600;
 }
+
+.context-pack-preview {
+  margin: 1.25rem 0;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #d5dde6;
+  border-radius: 0.4rem;
+}
+
+.context-pack-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #1f4b6e;
+}
+
+.context-pack-preview__meta {
+  margin: 0.75rem 0;
+  color: #5b6673;
+  font-size: 0.9rem;
+}
+
+.context-pack-preview__body h3 {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5b6673;
+}
+
+.context-pack-preview__body pre {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  background: #f3f6f9;
+  border-radius: 0.3rem;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+}
+
+.context-pack-preview__body ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+}
+
+.suggested-prompts {
+  margin: 1.25rem 0;
+}
+
+.suggested-prompts h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.suggested-prompts ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.ask-ai-form {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1.25rem 0;
+}
+
+.ask-ai-form label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #5b6673;
+}
+
+.ask-ai-form textarea {
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #c5ced8;
+  border-radius: 0.35rem;
+  background: #fff;
+  font: inherit;
+  resize: vertical;
+}
+
+.ask-ai-form button {
+  justify-self: start;
+  padding: 0.6rem 1rem;
+  border: 0;
+  border-radius: 0.35rem;
+  background: #1f4b6e;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ask-ai-form button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ai-answer {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  border-left: 3px solid #1f4b6e;
+}
+
+.ai-answer h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.ai-answer h3 {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5b6673;
+}
+
+.ai-answer ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}

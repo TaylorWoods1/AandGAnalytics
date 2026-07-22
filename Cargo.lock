@@ -9,6 +9,7 @@ dependencies = [
  "ag_analytics",
  "ag_credentials",
  "ag_db",
+ "ag_gemini",
  "ag_jira",
  "ag_risk",
  "ag_sync",
@@ -88,6 +89,23 @@ dependencies = [
 [[package]]
 name = "ag_gemini"
 version = "0.1.0"
+dependencies = [
+ "ag_credentials",
+ "ag_db",
+ "async-lock 3.4.1",
+ "async-signal",
+ "httpmock",
+ "idna",
+ "indexmap 2.7.1",
+ "reqwest 0.11.27",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.19",
+ "tokio",
+ "url",
+]
 
 [[package]]
 name = "ag_jira"

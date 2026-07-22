@@ -2,3 +2,24 @@
 name = "ag_gemini"
 version = "0.1.0"
 edition.workspace = true
+
+[dependencies]
+ag_credentials = { path = "../ag_credentials" }
+ag_db = { path = "../ag_db" }
+reqwest = { version = "=0.11.27", default-features = false, features = ["json", "rustls-tls"] }
+rusqlite = { version = "0.32.1", features = ["bundled"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.151"
+thiserror = "2.0.19"
+# Transitive pins for Rust/Cargo 1.84.1 (no edition2024 / MSRV 1.85+ crates)
+idna = "=0.5.0"
+url = "=2.5.2"
+indexmap = "=2.7.1"
+
+[dev-dependencies]
+httpmock = "=0.7.0"
+tempfile = "=3.14.0"
+tokio = { version = "=1.40.0", features = ["macros", "rt-multi-thread"] }
+# httpmock → async-std pulls these; pin below MSRV 1.85
+async-lock = "=3.4.1"
+async-signal = "=0.2.13"

@@ -1,9 +1,14 @@
 //! Gemini client and context pack builder for AandG Analytics.
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn workspace_compiles_and_gemini_crate_is_wired() {
-        assert_eq!(env!("CARGO_PKG_NAME"), "ag_gemini");
-    }
-}
+mod client;
+mod context;
+mod error;
+
+pub use client::{
+    suggested_prompts, GeminiAnswer, GeminiClient, DEFAULT_MODEL, SYSTEM_INSTRUCTION,
+};
+pub use context::{
+    approx_token_count, build_context_pack, format_pack_for_prompt, ContextPack, IssueCite,
+    MetricsFilter,
+};
+pub use error::GeminiError;

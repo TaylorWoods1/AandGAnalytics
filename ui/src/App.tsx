@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { hasCredentials } from './lib/tauri';
+import AskAiPage from './pages/AskAiPage';
 import EpicsPage from './pages/EpicsPage';
 import ExplorePage from './pages/ExplorePage';
 import FlowPage from './pages/FlowPage';
@@ -83,6 +84,14 @@ export default function App() {
         element={
           <RequireCredentials>
             <ExplorePage />
+          </RequireCredentials>
+        }
+      />
+      <Route
+        path="/ask"
+        element={
+          <RequireCredentials>
+            <AskAiPage />
           </RequireCredentials>
         }
       />

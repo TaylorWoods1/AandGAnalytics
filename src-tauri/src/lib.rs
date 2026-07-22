@@ -49,6 +49,9 @@ pub fn run() {
             commands::get_epic_risk,
             commands::get_finish_by,
             commands::list_issues,
+            commands::preview_context_pack,
+            commands::ask_ai,
+            commands::get_suggested_prompts,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AandG Analytics");

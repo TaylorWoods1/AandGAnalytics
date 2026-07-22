@@ -165,3 +165,36 @@ export async function getFinishBy(epicKey: string, targetDate: string): Promise<
 export async function listIssues(filter: MetricsFilter, page: Page): Promise<IssuePage> {
   return tauriInvoke<IssuePage>('list_issues', { filter, page });
 }
+
+export type IssueCite = {
+  key: string;
+  summary: string | null;
+  status: string | null;
+  project_key: string;
+  cycle_secs: number | null;
+};
+
+export type ContextPack = {
+  filter_summary: string;
+  metrics_markdown: string;
+  supporting_issues: IssueCite[];
+  approx_tokens: number;
+};
+
+export type GeminiAnswer = {
+  text: string;
+  citations: string[];
+};
+
+export async function previewContextPack(filter: MetricsFilter): Promise<ContextPack> {
+  return tauriInvoke<ContextPack>('preview_context_pack', { filter });
+}
+
+export async function askAi(filter: MetricsFilter, question: string): Promise<GeminiAnswer> {
+  return tauriInvoke<GeminiAnswer>('ask_ai', { filter, question });
+}
+
+export async function getSuggestedPrompts(): Promise<string[]> {
+  const result = await tauriInvoke<{ prompts: string[] }>('get_suggested_prompts');
+  return result.prompts;
+}

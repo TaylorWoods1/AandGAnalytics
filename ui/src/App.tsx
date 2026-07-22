@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { hasCredentials } from './lib/tauri';
+import EpicsPage from './pages/EpicsPage';
 import FlowPage from './pages/FlowPage';
 import HomePage from './pages/HomePage';
 import SetupPage from './pages/SetupPage';
+import SprintsPage from './pages/SprintsPage';
 import SyncPage from './pages/SyncPage';
 
 function RequireCredentials({ children }: { children: ReactNode }) {
@@ -56,6 +58,22 @@ export default function App() {
         element={
           <RequireCredentials>
             <FlowPage />
+          </RequireCredentials>
+        }
+      />
+      <Route
+        path="/sprints"
+        element={
+          <RequireCredentials>
+            <SprintsPage />
+          </RequireCredentials>
+        }
+      />
+      <Route
+        path="/epics"
+        element={
+          <RequireCredentials>
+            <EpicsPage />
           </RequireCredentials>
         }
       />

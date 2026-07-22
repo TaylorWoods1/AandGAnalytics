@@ -265,3 +265,84 @@ h1 {
   letter-spacing: 0.04em;
   color: #5b6673;
 }
+
+.data-table tr.row-selected {
+  background: rgba(31, 75, 110, 0.08);
+}
+
+button.linkish {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #1f4b6e;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 0.15em;
+}
+
+.finish-by {
+  margin: 1.75rem 0;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid #d5dde6;
+  border-radius: 0.4rem;
+}
+
+.finish-by h2 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.finish-by__meta {
+  margin: 0 0 1rem;
+  color: #5b6673;
+  font-size: 0.95rem;
+}
+
+.finish-by label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #5b6673;
+  margin-bottom: 0.35rem;
+}
+
+.finish-by input[type='date'] {
+  display: block;
+  max-width: 14rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid #c5ced8;
+  border-radius: 0.3rem;
+  background: #fff;
+  font: inherit;
+  margin-bottom: 1rem;
+}
+
+.finish-by__result {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) 1fr;
+  gap: 1rem 1.5rem;
+  align-items: start;
+}
+
+.finish-by__result h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #5b6673;
+}
+
+.finish-by__result ul {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+
+.finish-by__result p {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}

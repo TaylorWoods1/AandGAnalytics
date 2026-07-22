@@ -55,6 +55,8 @@ export default function HomePage() {
             Home
           </Link>
           <Link to="/flow">Flow</Link>
+          <Link to="/sprints">Sprints</Link>
+          <Link to="/epics">Epics</Link>
         </nav>
       </header>
 

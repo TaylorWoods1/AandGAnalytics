@@ -90,11 +90,27 @@ export type FlowMetrics = {
   handoffs: number;
 };
 
+export type SprintMetrics = {
+  sprint_id: string;
+  name: string | null;
+  committed: number | null;
+  completed: number | null;
+  spillover: number | null;
+  scope_added: number | null;
+  scope_removed: number | null;
+  velocity_points: number | null;
+};
+
 export type EpicRisk = {
   epic_key: string;
   score: number;
   finish_by_probability: number | null;
   drivers: string[];
+  assumptions: string[];
+};
+
+export type FinishByResult = {
+  probability: number;
   assumptions: string[];
 };
 
@@ -110,6 +126,17 @@ export async function getFlowMetrics(filter: MetricsFilter): Promise<FlowMetrics
   return tauriInvoke<FlowMetrics>('get_flow_metrics', { filter });
 }
 
+export async function getSprintMetrics(filter: MetricsFilter): Promise<SprintMetrics[]> {
+  return tauriInvoke<SprintMetrics[]>('get_sprint_metrics', { filter });
+}
+
 export async function getEpicRisk(filter: MetricsFilter): Promise<EpicRisk[]> {
   return tauriInvoke<EpicRisk[]>('get_epic_risk', { filter });
+}
+
+export async function getFinishBy(epicKey: string, targetDate: string): Promise<FinishByResult> {
+  return tauriInvoke<FinishByResult>('get_finish_by', {
+    epic_key: epicKey,
+    target_date: targetDate,
+  });
 }

@@ -44,6 +44,8 @@ export default function FlowPage() {
           <Link to="/flow" aria-current="page">
             Flow
           </Link>
+          <Link to="/sprints">Sprints</Link>
+          <Link to="/epics">Epics</Link>
         </nav>
       </header>
 

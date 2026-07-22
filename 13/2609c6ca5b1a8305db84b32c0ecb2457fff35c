@@ -1,0 +1,55 @@
+ui/src/pages/SetupPage.test.tsx
+  s_a7b5659e7d213a::t_e03feac8a2a2ec 1-2,5,15-24,33-47,49-52,56-66,68-75
+ui/src/components/SyncBanner.tsx
+  s_a7b5659e7d213a::t_edd0a2a8d1e2d2 2-7
+  s_a7b5659e7d213a::t_fcf13612d4a38e 1,18-19,22-30,35-37
+src-tauri/tauri.conf.json
+  s_a7b5659e7d213a::t_2c33aeb825d141 5,26-46
+src-tauri/src/commands/setup.rs
+  s_a7b5659e7d213a::t_77c87c8414862d 87-96
+docs/release/macos.md
+  s_a7b5659e7d213a::t_9c05c0ed78699d 1-96
+ui/src/pages/SetupPage.tsx
+  s_a7b5659e7d213a::t_70072a3aa1a44f 117-120
+  s_a7b5659e7d213a::t_a19c02a2acb55c 6-8,16
+  s_a7b5659e7d213a::t_83878406629407 36,52-56,61-65
+  s_a7b5659e7d213a::t_e33e84418ee38d 3
+ui/src/pages/SyncPage.tsx
+  s_a7b5659e7d213a::t_4b91df2006bb26 93-110,143-157
+  s_a7b5659e7d213a::t_e0b264ed26c4ad 5,7
+ui/src/components/SyncBanner.test.tsx
+  s_a7b5659e7d213a::t_954ba7a50ea209 4-5
+  s_a7b5659e7d213a::t_45cdbad763356f 1-3,6-40
+ui/src/styles.css
+  s_a7b5659e7d213a::t_a5cc7315b7e502 110-150
+ui/src/lib/tauri.ts
+  s_a7b5659e7d213a::t_c5784c79335011 41-50
+src-tauri/src/commands/maintenance.rs
+  s_a7b5659e7d213a::t_d19ad101d0625f 15
+  s_a7b5659e7d213a::t_c2307f4283adb1 117-118
+  s_a7b5659e7d213a::t_f93d49ef5588f5 1-14,16-72,74-89,91-116,119-168
+  s_a7b5659e7d213a::t_3627f26a2e55fc 90
+src-tauri/src/lib.rs
+  s_a7b5659e7d213a::t_83ed4c6d7110ec 55-56
+ui/src/lib/syncErrors.ts
+  s_a7b5659e7d213a::t_eb82033d16aa3f 1-28
+src-tauri/src/commands/mod.rs
+  s_a7b5659e7d213a::t_950aa95911155e 29
+  s_a7b5659e7d213a::t_71d312b22fa482 4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "132609c6ca5b1a8305db84b32c0ecb2457fff35c",
+  "prompts": {},
+  "sessions": {
+    "s_a7b5659e7d213a": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "90de799e-7d5e-4e26-8186-0628403b888d",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

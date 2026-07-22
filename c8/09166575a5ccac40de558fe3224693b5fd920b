@@ -1,0 +1,24 @@
+crates/ag_sync/src/engine.rs
+  s_ccc3004f15efaf::t_54ab5fe9a46576 759-760,766,770,775
+  s_ccc3004f15efaf::t_4944da2b32199a 74-84,87-90,106-116,125-127
+  s_ccc3004f15efaf::t_796a124c3762ec 29-30,33
+  s_ccc3004f15efaf::t_30adcf370d1791 658-667,675-682,695,714,743,756-758,761-765,767-769,771-774
+crates/ag_sync/src/lib.rs
+  s_ccc3004f15efaf::t_f154f02702d6ec 11
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "c809166575a5ccac40de558fe3224693b5fd920b",
+  "prompts": {},
+  "sessions": {
+    "s_ccc3004f15efaf": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "abba256d-7d44-43c6-b408-e36c2e61901e",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

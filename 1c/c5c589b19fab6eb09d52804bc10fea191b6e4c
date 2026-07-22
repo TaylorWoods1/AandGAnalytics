@@ -1,0 +1,28 @@
+src-tauri/src/lib.rs
+  s_82168df3a4e736::t_1d00d04ba12f31 20-21,23,27-29,31-38
+src-tauri/src/scheduler.rs
+  s_82168df3a4e736::t_638a99cbc12017 87
+  s_82168df3a4e736::t_be8c5fa11dc6b2 14-19,21,23-27,31-35,37-38,40-86,88-125
+src-tauri/src/commands/metrics.rs
+  s_82168df3a4e736::t_962360943341a4 678,686,694,702,711
+src-tauri/src/commands/sync.rs
+  s_82168df3a4e736::t_202105c664284c 105-108,118,127-129
+src-tauri/src/commands/setup.rs
+  s_82168df3a4e736::t_e9f1ff02ecad31 120,128-130
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "1cc5c589b19fab6eb09d52804bc10fea191b6e4c",
+  "prompts": {},
+  "sessions": {
+    "s_82168df3a4e736": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "9dac7a74-de40-4cab-9533-739e4e29a289",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

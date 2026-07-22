@@ -35,6 +35,14 @@ dependencies = [
 [[package]]
 name = "ag_analytics"
 version = "0.1.0"
+dependencies = [
+ "ag_db",
+ "ag_jira",
+ "chrono",
+ "rusqlite",
+ "tempfile",
+ "thiserror 2.0.19",
+]
 
 [[package]]
 name = "ag_credentials"

@@ -1,0 +1,27 @@
+src-tauri/src/lib.rs
+  s_258b6032aac2df::t_db5ccd93bca62b 59
+src-tauri/src/commands/mod.rs
+  s_258b6032aac2df::t_5dfcd1ebad994e 38-39
+  s_258b6032aac2df::t_f7279cc7be8236 18-23
+src-tauri/src/commands/metrics.rs
+  s_258b6032aac2df::t_37f59edd39d420 1312-1318,1323-1324
+  s_258b6032aac2df::t_ef4a13374a4f7d 170-201
+  s_258b6032aac2df::t_9dd33baf37da5a 264-363
+  s_258b6032aac2df::t_acdaef17fa283c 1676-1712
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "09bbb92acdcba8d9abec29b32764ca5cfdd96da1",
+  "prompts": {},
+  "sessions": {
+    "s_258b6032aac2df": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "27e831d7-541d-4685-9ad5-3747d1761ddc",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

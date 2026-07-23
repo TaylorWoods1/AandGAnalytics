@@ -6,6 +6,7 @@ mod changelog;
 mod error;
 mod events;
 mod flow;
+mod performance;
 mod rebuild;
 mod sprint;
 mod throughput;
@@ -21,9 +22,10 @@ pub use flow::{
     cycle_and_lead, default_status_category, resolve_status_category, time_in_status,
     CycleLeadTimes, StatusFlowCategory, TimeInStatus,
 };
+pub use performance::month_key;
 pub use rebuild::{
-    rebuild_all_derived, rebuild_event_derived, rebuild_flow_derived, rebuild_sprint_derived,
-    rebuild_throughput_derived,
+    rebuild_all_derived, rebuild_event_derived, rebuild_flow_derived, rebuild_performance_derived,
+    rebuild_sprint_derived, rebuild_throughput_derived,
 };
 pub use sprint::{compute_sprint_metrics, SprintMetrics};
 pub use throughput::daily_throughput;

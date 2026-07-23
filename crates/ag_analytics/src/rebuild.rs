@@ -6,10 +6,12 @@ use ag_jira::{ChangelogHistory, ChangelogItem};
 use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection};
 
+use crate::attribution::{resolve_finisher, AssigneeChange, AttributionSource};
 use crate::changelog::{parse_jira_datetime, transitions_from_changelog, StatusTransition};
 use crate::error::AnalyticsError;
 use crate::events::{detect_handoffs, detect_reopens, detect_scope_changes, FieldChange};
 use crate::flow::{cycle_and_lead, resolve_status_category, time_in_status, StatusFlowCategory};
+use crate::performance::month_key;
 use crate::sprint::compute_sprint_metrics;
 use crate::throughput::daily_throughput;
 
@@ -19,14 +21,128 @@ const META_EVENTS_HANDOFFS: &str = "derived_events:handoffs";
 const META_EVENTS_SCOPE_ADDED: &str = "derived_events:scope_added";
 const META_EVENTS_SCOPE_REMOVED: &str = "derived_events:scope_removed";
 
-/// Rebuild all derived analytics tables (flow, throughput, sprint, events, epic risk).
+/// Rebuild all derived analytics tables (flow, throughput, sprint, events, epic risk, performance).
 pub fn rebuild_all_derived(conn: &Connection, now: DateTime<Utc>) -> Result<(), AnalyticsError> {
     rebuild_flow_derived(conn, now)?;
     rebuild_throughput_derived(conn)?;
     rebuild_sprint_derived(conn)?;
     rebuild_event_derived(conn)?;
+    rebuild_performance_derived(conn)?;
     ag_risk::rebuild_epic_risk(conn, now).map_err(|e| AnalyticsError::Other(e.to_string()))?;
     Ok(())
+}
+
+/// Recompute `derived_completions` and `derived_person_month` from cycle + assignee changelog.
+pub fn rebuild_performance_derived(conn: &Connection) -> Result<(), AnalyticsError> {
+    conn.execute("DELETE FROM derived_completions", [])?;
+    conn.execute("DELETE FROM derived_person_month", [])?;
+
+    let mut stmt = conn.prepare(
+        "SELECT i.id, i.project_key, i.assignee_account_id, i.story_points, c.completed_at
+         FROM derived_issue_cycle c
+         JOIN issues i ON i.id = c.issue_id
+         WHERE c.completed_at IS NOT NULL
+         ORDER BY c.completed_at ASC",
+    )?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+                row.get::<_, Option<f64>>(3)?,
+                row.get::<_, String>(4)?,
+            ))
+        })?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let mut person_month: BTreeMap<(String, String), (i64, f64)> = BTreeMap::new();
+
+    for (issue_id, project_key, current_assignee, story_points, completed_raw) in rows {
+        let Some(completed_at) = parse_jira_datetime(&completed_raw).or_else(|| {
+            DateTime::parse_from_rfc3339(&completed_raw)
+                .ok()
+                .map(|d| d.with_timezone(&Utc))
+        }) else {
+            continue;
+        };
+
+        let assignee_changes = load_assignee_changes(conn, &issue_id)?;
+        let (finisher, source) = resolve_finisher(
+            &assignee_changes,
+            completed_at,
+            current_assignee.as_deref(),
+        );
+        let attribution = match source {
+            AttributionSource::Changelog => "changelog",
+            AttributionSource::Current => "current",
+        };
+        let completed_at_str = completed_at.to_rfc3339();
+
+        conn.execute(
+            "INSERT INTO derived_completions (
+                issue_id, project_key, completed_at, finisher_account_id, story_points, attribution
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                issue_id,
+                project_key,
+                completed_at_str,
+                finisher.as_deref(),
+                story_points,
+                attribution
+            ],
+        )?;
+
+        if let Some(account_id) = finisher {
+            let key = (month_key(completed_at), account_id);
+            let entry = person_month.entry(key).or_insert((0, 0.0));
+            entry.0 += 1;
+            if let Some(pts) = story_points {
+                entry.1 += pts;
+            }
+        }
+    }
+
+    for ((month, account_id), (count, points)) in person_month {
+        conn.execute(
+            "INSERT INTO derived_person_month (month, account_id, completed_count, points)
+             VALUES (?1, ?2, ?3, ?4)",
+            params![month, account_id, count, points],
+        )?;
+    }
+
+    Ok(())
+}
+
+fn load_assignee_changes(
+    conn: &Connection,
+    issue_id: &str,
+) -> Result<Vec<AssigneeChange>, AnalyticsError> {
+    let mut stmt = conn.prepare(
+        "SELECT created, from_value, to_value, from_string, to_string
+         FROM issue_changelog
+         WHERE issue_id = ?1 AND lower(field) = 'assignee'
+         ORDER BY created ASC, id ASC",
+    )?;
+    let mut changes = Vec::new();
+    let mut rows = stmt.query(params![issue_id])?;
+    while let Some(row) = rows.next()? {
+        let created_raw: String = row.get(0)?;
+        let from_value: Option<String> = row.get(1)?;
+        let to_value: Option<String> = row.get(2)?;
+        let from_string: Option<String> = row.get(3)?;
+        let to_string: Option<String> = row.get(4)?;
+        let Some(at) = parse_jira_datetime(&created_raw) else {
+            continue;
+        };
+        let _ = from_value.or(from_string);
+        let to_account_id = to_value
+            .or(to_string)
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty());
+        changes.push(AssigneeChange { at, to_account_id });
+    }
+    Ok(changes)
 }
 
 /// Recompute `derived_time_in_status` and `derived_issue_cycle` from raw issues/changelog.
@@ -827,5 +943,106 @@ mod tests {
             )
             .unwrap();
         assert_eq!(handoffs, "1");
+    }
+
+    #[test]
+    fn rebuild_performance_derived_writes_completions_and_person_month() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("perf.db");
+        let conn = open_db(&path).unwrap();
+        migrate(&conn).unwrap();
+
+        conn.execute(
+            "INSERT INTO issues (
+                id, key, project_key, summary, issue_type, status, status_category,
+                assignee_account_id, story_points, created, updated, resolved
+             ) VALUES ('1', 'DEMO-1', 'DEMO', 'Sample', 'Story', 'Done', 'done',
+                       'carol', 5.0,
+                       '2024-01-01T08:00:00.000+0000',
+                       '2024-01-15T11:00:00.000+0000',
+                       '2024-01-15T11:00:00.000+0000')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO issues (
+                id, key, project_key, summary, issue_type, status, status_category,
+                assignee_account_id, story_points, created, updated, resolved
+             ) VALUES ('2', 'DEMO-2', 'DEMO', 'No changelog assignee', 'Story', 'Done', 'done',
+                       'ada', 3.0,
+                       '2024-02-01T08:00:00.000+0000',
+                       '2024-02-10T11:00:00.000+0000',
+                       '2024-02-10T11:00:00.000+0000')",
+            [],
+        )
+        .unwrap();
+
+        conn.execute(
+            "INSERT INTO issue_changelog (
+                issue_id, changelog_id, field, from_string, to_string, created
+             ) VALUES ('1', 's1', 'status', 'In Progress', 'Done', '2024-01-15T11:00:00.000+0000')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO issue_changelog (
+                issue_id, changelog_id, field, from_value, to_value, created
+             ) VALUES ('1', 'a1', 'assignee', 'ada', 'bob', '2024-01-10T10:00:00.000+0000')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO issue_changelog (
+                issue_id, changelog_id, field, from_string, to_string, created
+             ) VALUES ('2', 's2', 'status', 'In Progress', 'Done', '2024-02-10T11:00:00.000+0000')",
+            [],
+        )
+        .unwrap();
+
+        let now = Utc.with_ymd_and_hms(2024, 2, 15, 0, 0, 0).unwrap();
+        rebuild_flow_derived(&conn, now).unwrap();
+        rebuild_performance_derived(&conn).unwrap();
+
+        let (finisher, attribution, points): (Option<String>, String, Option<f64>) = conn
+            .query_row(
+                "SELECT finisher_account_id, attribution, story_points
+                 FROM derived_completions WHERE issue_id = '1'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(finisher.as_deref(), Some("bob"));
+        assert_eq!(attribution, "changelog");
+        assert_eq!(points, Some(5.0));
+
+        let (finisher2, attribution2): (Option<String>, String) = conn
+            .query_row(
+                "SELECT finisher_account_id, attribution FROM derived_completions WHERE issue_id = '2'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(finisher2.as_deref(), Some("ada"));
+        assert_eq!(attribution2, "current");
+
+        let bob_jan: i64 = conn
+            .query_row(
+                "SELECT completed_count FROM derived_person_month
+                 WHERE month = '2024-01' AND account_id = 'bob'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(bob_jan, 1);
+
+        let ada_feb: (i64, Option<f64>) = conn
+            .query_row(
+                "SELECT completed_count, points FROM derived_person_month
+                 WHERE month = '2024-02' AND account_id = 'ada'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(ada_feb, (1, Some(3.0)));
     }
 }

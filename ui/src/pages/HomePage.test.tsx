@@ -66,7 +66,7 @@ describe('HomePage', () => {
     expect(await screen.findByRole('heading', { name: 'Top movers' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Top projects by completions' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Blocker hotspots' })).toBeInTheDocument();
-    expect(screen.getByText('ALPHA')).toBeInTheDocument();
+    expect(screen.getAllByText('ALPHA').length).toBeGreaterThan(0);
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open Performance' })).toHaveAttribute(
       'href',

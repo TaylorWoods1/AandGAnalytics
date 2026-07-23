@@ -98,7 +98,7 @@ describe('SetupPage', () => {
     });
   });
 
-  it('shows settings mode with clear action when already configured', async () => {
+  it('confirms then clears credentials via in-page reset', async () => {
     vi.mocked(tauri.getSetupInfo).mockResolvedValue({
       jira_configured: true,
       bedrock_configured: false,
@@ -106,17 +106,46 @@ describe('SetupPage', () => {
       site_url: JIRA_SITE_URL,
       bedrock_region: null,
     });
+    vi.mocked(tauri.validateSetup).mockResolvedValue({
+      jira_ok: true,
+      bedrock_ok: true,
+      jira_message: 'authenticated as Dev User',
+      bedrock_message: 'not configured (optional — Ask AI disabled)',
+    });
+    vi.mocked(tauri.resetSetup).mockResolvedValue();
 
     renderSetup('/settings');
     expect(await screen.findByRole('heading', { name: /^settings$/i })).toBeInTheDocument();
-    expect(screen.getByText(/currently signed in as/i)).toHaveTextContent('dev@example.com');
-    expect(screen.getByRole('link', { name: /^settings$/i })).toHaveAttribute(
-      'aria-current',
-      'page',
+
+    fireEvent.click(screen.getByRole('button', { name: /clear credentials & local data/i }));
+    expect(tauri.resetSetup).not.toHaveBeenCalled();
+    expect(screen.getByText(/permanently clears saved tokens/i)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /confirm clear/i }));
+    await waitFor(() => {
+      expect(tauri.resetSetup).toHaveBeenCalled();
+    });
+    expect(await screen.findByRole('heading', { name: /^setup$/i })).toBeInTheDocument();
+  });
+
+  it('tests jira connection and shows authenticated status', async () => {
+    vi.mocked(tauri.saveSetup).mockResolvedValue();
+    vi.mocked(tauri.validateSetup).mockResolvedValue({
+      jira_ok: true,
+      bedrock_ok: true,
+      jira_message: 'authenticated as Dev User',
+      bedrock_message: 'not configured (optional — Ask AI disabled)',
+    });
+
+    renderSetup();
+    await screen.findByRole('heading', { name: /^setup$/i });
+    fillJiraFields();
+    fireEvent.click(screen.getByRole('button', { name: /test connection/i }));
+
+    expect(await screen.findByRole('status', { name: /connection status/i })).toHaveTextContent(
+      /Connected — authenticated as Dev User/i,
     );
-    expect(
-      screen.getByRole('button', { name: /clear credentials & local data/i }),
-    ).toBeInTheDocument();
+    expect(tauri.startFullSync).not.toHaveBeenCalled();
   });
 
   it('hides site URL and hardcodes Auto General AU Jira', async () => {

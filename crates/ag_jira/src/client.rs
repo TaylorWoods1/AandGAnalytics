@@ -129,6 +129,9 @@ impl HttpDoer for ReqwestHttpDoer {
 
 /// Jira Cloud REST client.
 pub struct JiraClient<H: HttpDoer> {
+    /// Original site URL (e.g. `https://example.atlassian.net`) for tenant lookup.
+    site_url: String,
+    /// REST base — either the site URL or `https://api.atlassian.com/ex/jira/{cloudId}`.
     base_url: String,
     email: String,
     api_token: String,
@@ -138,6 +141,7 @@ pub struct JiraClient<H: HttpDoer> {
 impl<H: HttpDoer> fmt::Debug for JiraClient<H> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("JiraClient")
+            .field("site_url", &self.site_url)
             .field("base_url", &self.base_url)
             .field("email", &self.email)
             .field("api_token", &"[REDACTED]")
@@ -148,20 +152,24 @@ impl<H: HttpDoer> fmt::Debug for JiraClient<H> {
 impl JiraClient<ReqwestHttpDoer> {
     /// Build a production client from stored credentials.
     pub fn new(creds: &JiraCredentials) -> Result<Self, JiraError> {
+        let site_url = normalize_base_url(&creds.site_url);
         Ok(Self {
-            base_url: normalize_base_url(&creds.site_url),
-            email: creds.email.clone(),
-            api_token: creds.api_token.clone(),
+            base_url: site_url.clone(),
+            site_url,
+            email: creds.email.trim().to_string(),
+            api_token: creds.api_token.trim().to_string(),
             http: ReqwestHttpDoer::new()?,
         })
     }
 
     /// Test helper that points at a mock base URL with basic auth.
     pub fn new_for_test(base_url: &str, email: &str, api_token: &str) -> Self {
+        let site_url = normalize_base_url(base_url);
         Self {
-            base_url: normalize_base_url(base_url),
-            email: email.to_string(),
-            api_token: api_token.to_string(),
+            base_url: site_url.clone(),
+            site_url,
+            email: email.trim().to_string(),
+            api_token: api_token.trim().to_string(),
             http: ReqwestHttpDoer::new().expect("reqwest client"),
         }
     }
@@ -170,12 +178,33 @@ impl JiraClient<ReqwestHttpDoer> {
 impl<H: HttpDoer> JiraClient<H> {
     /// Inject a custom [`HttpDoer`] (useful for unit tests without a real socket).
     pub fn with_http(creds: &JiraCredentials, http: H) -> Self {
+        let site_url = normalize_base_url(&creds.site_url);
         Self {
-            base_url: normalize_base_url(&creds.site_url),
-            email: creds.email.clone(),
-            api_token: creds.api_token.clone(),
+            base_url: site_url.clone(),
+            site_url,
+            email: creds.email.trim().to_string(),
+            api_token: creds.api_token.trim().to_string(),
             http,
         }
+    }
+
+    /// Prefer Atlassian API gateway (`api.atlassian.com/ex/jira/{cloudId}`).
+    ///
+    /// Required for **API tokens with scopes**. Classic (unscoped) tokens work on both
+    /// the site URL and the gateway. No-ops if tenant lookup fails (keeps site URL).
+    pub async fn use_atlassian_gateway(&mut self) -> Result<(), JiraError> {
+        match fetch_cloud_id(&self.http, &self.site_url).await {
+            Ok(cloud_id) => {
+                self.base_url = format!("https://api.atlassian.com/ex/jira/{cloud_id}");
+                Ok(())
+            }
+            Err(_) => Ok(()),
+        }
+    }
+
+    /// Active REST base URL (site or gateway).
+    pub fn base_url(&self) -> &str {
+        &self.base_url
     }
 
     /// `GET /rest/api/3/myself`
@@ -303,11 +332,46 @@ fn basic_auth_header(email: &str, api_token: &str) -> String {
     format!("Basic {token}")
 }
 
+/// Resolve Atlassian `cloudId` from `GET {site}/_edge/tenant_info` (no auth).
+async fn fetch_cloud_id<H: HttpDoer>(http: &H, site_url: &str) -> Result<String, JiraError> {
+    let url = format!("{}/_edge/tenant_info", normalize_base_url(site_url));
+    let req = HttpRequest {
+        method: "GET".into(),
+        url,
+        headers: vec![("Accept".into(), "application/json".into())],
+        body: None,
+    };
+    let resp = http.request(req).await?;
+    if !(200..300).contains(&resp.status) {
+        return Err(JiraError::Api {
+            status: resp.status,
+            body: "tenant_info unavailable".into(),
+        });
+    }
+    let value: serde_json::Value = serde_json::from_slice(&resp.body)?;
+    value
+        .get("cloudId")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| JiraError::Api {
+            status: 200,
+            body: "tenant_info missing cloudId".into(),
+        })
+}
+
 fn map_response(resp: HttpResponse) -> Result<Vec<u8>, JiraError> {
     match resp.status {
         200..=299 => Ok(resp.body),
         401 => Err(JiraError::Unauthorized),
-        403 => Err(JiraError::Forbidden),
+        403 => {
+            let body = String::from_utf8_lossy(&resp.body);
+            if looks_like_ip_allowlist(&body) {
+                Err(JiraError::IpNotAllowlisted)
+            } else {
+                Err(JiraError::Forbidden)
+            }
+        }
         429 => {
             let retry_after_ms = resp
                 .headers
@@ -327,6 +391,13 @@ fn map_response(resp: HttpResponse) -> Result<Vec<u8>, JiraError> {
     }
 }
 
+fn looks_like_ip_allowlist(body: &str) -> bool {
+    let lower = body.to_ascii_lowercase();
+    lower.contains("ip allowlist")
+        || lower.contains("ip address is not listed")
+        || lower.contains("not listed in the ip allowlist")
+}
+
 fn parse_retry_after_ms(value: &str) -> Option<u64> {
     let trimmed = value.trim();
     if let Ok(secs) = trimmed.parse::<u64>() {
@@ -338,6 +409,27 @@ fn parse_retry_after_ms(value: &str) -> Option<u64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[tokio::test]
+    async fn myself_ip_allowlist_403_is_classified() {
+        let server = httpmock::MockServer::start();
+        let mock = server.mock(|when, then| {
+            when.method("GET").path("/rest/api/3/myself");
+            then.status(403)
+                .header("content-type", "application/json")
+                .body(
+                    r#"{"code":403,"message":"You're unable to access content because your IP address is not listed in the IP allowlist. Contact your admin for help."}"#,
+                );
+        });
+
+        let client = JiraClient::new_for_test(&server.base_url(), "dev@example.com", "token");
+        let err = client.get_myself().await.unwrap_err();
+        assert!(
+            matches!(err, JiraError::IpNotAllowlisted),
+            "expected IpNotAllowlisted, got {err:?}"
+        );
+        mock.assert();
+    }
 
     #[tokio::test]
     async fn get_myself_parses_fixture() {
@@ -424,6 +516,25 @@ mod tests {
             other => panic!("expected RateLimited, got {other:?}"),
         }
         mock.assert();
+    }
+
+    #[tokio::test]
+    async fn use_atlassian_gateway_switches_base_url_from_tenant_info() {
+        let server = httpmock::MockServer::start();
+        let tenant = server.mock(|when, then| {
+            when.method("GET").path("/_edge/tenant_info");
+            then.status(200)
+                .header("content-type", "application/json")
+                .body(r#"{"cloudId":"cloud-123"}"#);
+        });
+
+        let mut client = JiraClient::new_for_test(&server.base_url(), "dev@example.com", "token");
+        client.use_atlassian_gateway().await.unwrap();
+        assert_eq!(
+            client.base_url(),
+            "https://api.atlassian.com/ex/jira/cloud-123"
+        );
+        tenant.assert();
     }
 
     #[tokio::test]

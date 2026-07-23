@@ -64,6 +64,15 @@ pub fn save_setup_inner(
         return Err("jira credentials incomplete".into());
     }
 
+    let jira = JiraCredentials {
+        site_url: jira.site_url.trim().trim_end_matches('/').to_string(),
+        email: jira.email.trim().to_string(),
+        api_token: jira.api_token.trim().to_string(),
+    };
+    if jira.api_token.is_empty() {
+        return Err("jira credentials incomplete".into());
+    }
+
     state
         .credentials
         .save_jira(&jira)
@@ -71,7 +80,10 @@ pub fn save_setup_inner(
     if !bedrock.api_key.trim().is_empty() {
         state
             .credentials
-            .save_bedrock(&bedrock)
+            .save_bedrock(&BedrockCredentials {
+                api_key: bedrock.api_key.trim().to_string(),
+                region: bedrock.region,
+            })
             .map_err(|e| e.to_string())?;
     }
 
@@ -122,14 +134,30 @@ pub async fn validate_setup_inner(state: &AppState) -> Result<SetupStatus, Strin
 }
 
 async fn probe_jira(creds: &JiraCredentials) -> Result<String, String> {
-    let client = JiraClient::new(creds).map_err(|e| e.to_string())?;
+    let mut client = JiraClient::new(creds).map_err(|e| e.to_string())?;
+    // Scoped API tokens require the api.atlassian.com gateway; classic tokens work on both.
+    let _ = client.use_atlassian_gateway().await;
     let me = match client.get_myself().await {
         Ok(me) => me,
         Err(ag_jira::JiraError::Unauthorized) => {
-            return Err("unauthorized (HTTP 401): update your Jira API token".into());
+            return Err(
+                "unauthorized (HTTP 401): email must match the Atlassian account that created the API token"
+                    .into(),
+            );
+        }
+        Err(ag_jira::JiraError::IpNotAllowlisted) => {
+            return Err(
+                "forbidden (HTTP 403): this Mac's IP is not on Auto General's Jira IP allowlist. \
+Connect to the company VPN (or office network), or ask an Atlassian admin to allowlist your IP"
+                    .into(),
+            );
         }
         Err(ag_jira::JiraError::Forbidden) => {
-            return Err("forbidden (HTTP 403): token lacks permission for this site".into());
+            return Err(
+                "forbidden (HTTP 403): token/email rejected or missing Jira access — confirm Create API token \
+(not with scopes) and that this account can open Jira in a browser"
+                    .into(),
+            );
         }
         Err(e) => return Err(e.to_string()),
     };

@@ -17,9 +17,13 @@ pub enum JiraError {
     #[error("unauthorized")]
     Unauthorized,
 
-    /// HTTP 403.
+    /// HTTP 403 (generic permission / auth failure).
     #[error("forbidden")]
     Forbidden,
+
+    /// HTTP 403 from Atlassian IP allowlist (org network policy).
+    #[error("ip not allowlisted")]
+    IpNotAllowlisted,
 
     /// Other non-success HTTP status with a redacted/truncated body.
     #[error("Jira API error {status}")]

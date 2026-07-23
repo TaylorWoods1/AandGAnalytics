@@ -157,6 +157,80 @@ h1 {
   cursor: pointer;
 }
 
+.setup-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.setup-page__actions .setup-page__submit {
+  margin-top: 0;
+}
+
+.setup-page__secondary {
+  padding: 0.6rem 1rem;
+  border: 1px solid var(--ag-grey-border);
+  border-radius: 0.35rem;
+  background: var(--ag-white);
+  color: var(--ag-black);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.setup-page__secondary:hover:not(:disabled) {
+  border-color: var(--ag-red);
+  color: var(--ag-red);
+}
+
+.setup-page__secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.connection-status {
+  margin: 1rem 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--ag-grey);
+  background: var(--ag-surface);
+}
+
+.connection-status--ok {
+  border-left-color: var(--ag-red);
+}
+
+.connection-status--bad {
+  border-left-color: var(--ag-black);
+  background: var(--ag-red-soft);
+}
+
+.connection-status h2 {
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+}
+
+.connection-status dl {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+}
+
+.connection-status dt {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ag-grey);
+}
+
+.connection-status dd {
+  margin: 0.15rem 0 0;
+}
+
+.connection-status dd.bad {
+  color: var(--ag-red);
+}
+
 .setup-page__submit:hover:not(:disabled),
 .sync-banner button:hover {
   filter: brightness(0.92);

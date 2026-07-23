@@ -240,6 +240,8 @@ impl CredentialStore for KeychainCredentialStore {
     fn clear_all(&self) -> Result<(), CredentialError> {
         Self::delete_secret(JIRA_ACCOUNT)?;
         Self::delete_secret(BEDROCK_ACCOUNT)?;
+        // Legacy Gemini account from earlier builds.
+        Self::delete_secret("gemini")?;
         Ok(())
     }
 }

@@ -10,13 +10,40 @@ import {
   startFullSync,
   validateSetup,
   type SetupInfo,
+  type SetupStatus,
 } from '../lib/tauri';
 
 /** Fixed Auto General AU Jira Cloud site — not user-configurable. */
 export const JIRA_SITE_URL = 'https://autogeneral-au.atlassian.net';
 
 const CREDENTIAL_SETUP_COPY =
-  'Jira returned 401/403 — your email or API token was rejected. Update the fields below and save again.';
+  'Jira blocked this connection (401/403). If the detail mentions an IP allowlist, join company VPN or ask an admin to allowlist your IP. Otherwise use Create API token (not with scopes) and the matching Atlassian email.';
+
+function ConnectionStatus({ status }: { status: SetupStatus }) {
+  return (
+    <section
+      className={`connection-status ${status.jira_ok ? 'connection-status--ok' : 'connection-status--bad'}`}
+      aria-label="Connection status"
+      role="status"
+    >
+      <h2>Connection check</h2>
+      <dl>
+        <div>
+          <dt>Jira</dt>
+          <dd className={status.jira_ok ? 'ok' : 'bad'}>
+            {status.jira_ok ? 'Connected' : 'Failed'} — {status.jira_message}
+          </dd>
+        </div>
+        <div>
+          <dt>Bedrock</dt>
+          <dd className={status.bedrock_ok ? 'ok' : 'bad'}>
+            {status.bedrock_ok ? 'OK' : 'Failed'} — {status.bedrock_message}
+          </dd>
+        </div>
+      </dl>
+    </section>
+  );
+}
 
 export default function SetupPage() {
   const navigate = useNavigate();
@@ -26,22 +53,35 @@ export default function SetupPage() {
   const [bedrockKey, setBedrockKey] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<SetupStatus | null>(null);
   const [credentialRejected, setCredentialRejected] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [testing, setTesting] = useState(false);
   const [resetBusy, setResetBusy] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
 
   const alreadyConfigured = Boolean(info?.jira_configured);
 
   useEffect(() => {
     let active = true;
     void getSetupInfo()
-      .then((next) => {
+      .then(async (next) => {
         if (!active) {
           return;
         }
         setInfo(next);
         if (next.email) {
           setEmail(next.email);
+        }
+        if (next.jira_configured) {
+          try {
+            const status = await validateSetup();
+            if (active) {
+              setConnectionStatus(status);
+            }
+          } catch {
+            // Probe is best-effort on load.
+          }
         }
       })
       .catch(() => {
@@ -60,62 +100,91 @@ export default function SetupPage() {
     };
   }, []);
 
-  const canContinue = useMemo(
+  const canSave = useMemo(
     () => email.trim().length > 0 && jiraToken.trim().length > 0,
     [email, jiraToken],
   );
 
-  async function onSubmit(event: FormEvent) {
-    event.preventDefault();
-    if (!canContinue || busy) {
+  const canTest = useMemo(() => {
+    if (alreadyConfigured) {
+      return true;
+    }
+    return canSave;
+  }, [alreadyConfigured, canSave]);
+
+  async function persistIfNeeded() {
+    if (!jiraToken.trim() && alreadyConfigured) {
       return;
     }
+    if (!canSave) {
+      throw new Error('Enter your Atlassian email and Jira API token first.');
+    }
+    await saveSetup(
+      {
+        site_url: JIRA_SITE_URL,
+        email: email.trim(),
+        api_token: jiraToken,
+      },
+      { api_key: bedrockKey.trim(), region: 'ap-southeast-2' },
+    );
+  }
 
-    setBusy(true);
+  async function runValidate(opts: { continueOnSuccess: boolean }) {
     setError(null);
     setSavedMessage(null);
     setCredentialRejected(false);
-    try {
-      const bedrockProvided = bedrockKey.trim().length > 0;
-      await saveSetup(
-        {
-          site_url: JIRA_SITE_URL,
-          email: email.trim(),
-          api_token: jiraToken,
-        },
-        { api_key: bedrockKey.trim(), region: 'ap-southeast-2' },
-      );
-      const status = await validateSetup();
-      if (!status.jira_ok || (bedrockProvided && !status.bedrock_ok)) {
-        const parts = [
-          !status.jira_ok ? `Jira: ${status.jira_message}` : null,
-          bedrockProvided && !status.bedrock_ok ? `Bedrock: ${status.bedrock_message}` : null,
-        ].filter(Boolean);
-        const message = parts.join(' · ') || 'Credential validation failed';
-        if (!status.jira_ok && isCredentialError(status.jira_message)) {
-          setCredentialRejected(true);
-        }
-        throw new Error(message);
-      }
+    const bedrockProvided = bedrockKey.trim().length > 0;
+    await persistIfNeeded();
+    const status = await validateSetup();
+    setConnectionStatus(status);
 
-      if (alreadyConfigured) {
-        setSavedMessage('Credentials saved.');
-        setJiraToken('');
-        setBedrockKey('');
-        setInfo((prev) =>
-          prev
-            ? {
-                ...prev,
-                jira_configured: true,
-                bedrock_configured: bedrockProvided || prev.bedrock_configured,
-                email: email.trim(),
-              }
-            : prev,
-        );
-      } else {
-        await startFullSync();
-        navigate('/sync');
+    if (!status.jira_ok || (bedrockProvided && !status.bedrock_ok)) {
+      const parts = [
+        !status.jira_ok ? `Jira: ${status.jira_message}` : null,
+        bedrockProvided && !status.bedrock_ok ? `Bedrock: ${status.bedrock_message}` : null,
+      ].filter(Boolean);
+      const message = parts.join(' · ') || 'Credential validation failed';
+      if (!status.jira_ok && isCredentialError(status.jira_message)) {
+        setCredentialRejected(true);
       }
+      throw new Error(message);
+    }
+
+    if (opts.continueOnSuccess && !alreadyConfigured) {
+      await startFullSync();
+      navigate('/sync');
+      return;
+    }
+
+    setSavedMessage(
+      alreadyConfigured && jiraToken.trim()
+        ? `Saved. Jira: ${status.jira_message}`
+        : `Jira: ${status.jira_message}`,
+    );
+    if (jiraToken.trim() || bedrockKey.trim()) {
+      setJiraToken('');
+      setBedrockKey('');
+    }
+    setInfo((prev) =>
+      prev
+        ? {
+            ...prev,
+            jira_configured: true,
+            bedrock_configured: bedrockProvided || prev.bedrock_configured,
+            email: email.trim() || prev.email,
+          }
+        : prev,
+    );
+  }
+
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!canSave || busy) {
+      return;
+    }
+    setBusy(true);
+    try {
+      await runValidate({ continueOnSuccess: true });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       if (isCredentialError(message)) {
@@ -127,18 +196,38 @@ export default function SetupPage() {
     }
   }
 
+  async function onTestConnection() {
+    if (!canTest || testing || busy) {
+      return;
+    }
+    setTesting(true);
+    try {
+      await runValidate({ continueOnSuccess: false });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      if (isCredentialError(message)) {
+        setCredentialRejected(true);
+      }
+      setError(message);
+    } finally {
+      setTesting(false);
+    }
+  }
+
   async function onReset() {
     if (resetBusy) {
       return;
     }
-    const ok = window.confirm(
-      'Clear saved credentials and local analytics data? You will start onboarding from scratch.',
-    );
-    if (!ok) {
+    // Tauri/WKWebView often blocks or no-ops `window.confirm` — use in-page confirm instead.
+    if (!confirmReset) {
+      setConfirmReset(true);
+      setError(null);
       return;
     }
     setResetBusy(true);
     setError(null);
+    setConnectionStatus(null);
+    setSavedMessage(null);
     try {
       await resetSetup();
       setInfo({
@@ -151,10 +240,12 @@ export default function SetupPage() {
       setEmail('');
       setJiraToken('');
       setBedrockKey('');
-      setSavedMessage(null);
+      setConfirmReset(false);
+      setSavedMessage('Credentials and local data cleared. Enter setup details to continue.');
       navigate('/setup', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+      setConfirmReset(false);
     } finally {
       setResetBusy(false);
     }
@@ -177,10 +268,12 @@ export default function SetupPage() {
       {alreadyConfigured ? (
         <p className="field-hint">
           Currently signed in as <strong>{info?.email ?? 'unknown'}</strong>
-          {info?.bedrock_configured ? ' · Bedrock key saved' : ' · Bedrock not configured'}. Re-enter
-          secrets below to update them.
+          {info?.bedrock_configured ? ' · Bedrock key saved' : ' · Bedrock not configured'}. Use
+          Test connection to verify the saved token, or re-enter secrets below to update them.
         </p>
       ) : null}
+
+      {connectionStatus ? <ConnectionStatus status={connectionStatus} /> : null}
 
       <form onSubmit={onSubmit}>
         <label htmlFor="email">Atlassian email</label>
@@ -210,7 +303,7 @@ export default function SetupPage() {
           hideLabel="Hide Jira API token"
           hint={
             <>
-              Create a token at{' '}
+              Create a token with <strong>Create API token</strong> (not “with scopes”) at{' '}
               <a
                 href="https://id.atlassian.com/manage-profile/security/api-tokens"
                 target="_blank"
@@ -218,7 +311,8 @@ export default function SetupPage() {
               >
                 id.atlassian.com/manage-profile/security/api-tokens
               </a>
-              . Pair it with the email above — not a password.
+              . Pair it with the Atlassian account email above — not a password. Scoped tokens also
+              work if they include Jira read scopes.
             </>
           }
         />
@@ -261,9 +355,23 @@ export default function SetupPage() {
           </p>
         ) : null}
 
-        <button type="submit" className="setup-page__submit" disabled={!canContinue || busy}>
-          {busy ? 'Saving…' : alreadyConfigured ? 'Save credentials' : 'Save and continue'}
-        </button>
+        <div className="setup-page__actions">
+          <button
+            type="button"
+            className="setup-page__secondary"
+            disabled={!canTest || testing || busy}
+            onClick={() => void onTestConnection()}
+          >
+            {testing ? 'Testing…' : 'Test connection'}
+          </button>
+          <button type="submit" className="setup-page__submit" disabled={!canSave || busy || testing}>
+            {busy
+              ? 'Saving…'
+              : alreadyConfigured
+                ? 'Save credentials'
+                : 'Save and continue'}
+          </button>
+        </div>
       </form>
 
       {alreadyConfigured ? (
@@ -273,9 +381,29 @@ export default function SetupPage() {
             Clear keychain credentials and delete the local analytics database, then return to first
             run setup.
           </p>
+          {confirmReset ? (
+            <p className="form-error" role="status">
+              This permanently clears saved tokens and local sync data. Click Confirm clear to
+              continue.
+            </p>
+          ) : null}
           <div className="maintenance-actions__buttons">
+            {confirmReset ? (
+              <button
+                type="button"
+                className="setup-page__secondary"
+                onClick={() => setConfirmReset(false)}
+                disabled={resetBusy}
+              >
+                Cancel
+              </button>
+            ) : null}
             <button type="button" onClick={() => void onReset()} disabled={resetBusy}>
-              {resetBusy ? 'Resetting…' : 'Clear credentials & local data'}
+              {resetBusy
+                ? 'Resetting…'
+                : confirmReset
+                  ? 'Confirm clear'
+                  : 'Clear credentials & local data'}
             </button>
           </div>
         </section>

@@ -69,6 +69,7 @@ impl<'a, H: HttpDoer> SyncEngine<'a, H> {
     /// Full sync: projects → issues (paginated) → sprints → derived stub → watermark.
     pub async fn run_full(&mut self, on_progress: impl Fn(SyncProgress)) -> Result<(), SyncError> {
         self.issues_synced = 0;
+        let _ = self.jira.use_atlassian_gateway().await;
         let result = self.run_full_inner(&on_progress).await;
         if let Err(ref err) = result {
             emit_failed(&on_progress, self.issues_synced, err);
@@ -101,6 +102,7 @@ impl<'a, H: HttpDoer> SyncEngine<'a, H> {
         &mut self,
         on_progress: impl Fn(SyncProgress),
     ) -> Result<(), SyncError> {
+        let _ = self.jira.use_atlassian_gateway().await;
         let result = self.run_incremental_inner(&on_progress).await;
         if let Err(ref err) = result {
             emit_failed(&on_progress, self.issues_synced, err);

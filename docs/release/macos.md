@@ -1,6 +1,8 @@
 # macOS release checklist (Jira Analytics)
 
-Local-only Tauri desktop app. Bundle identity:
+Local-only Tauri desktop app. Shared install requirements (macOS + Windows): [install.md](./install.md).
+
+Bundle identity:
 
 | Field | Value |
 |-------|-------|
@@ -12,8 +14,8 @@ Local-only Tauri desktop app. Bundle identity:
 
 ### Rust / library tests vs desktop build
 
-- **Library / CI path** (`cargo test --workspace`, no `desktop` feature): keep working on the pinned workspace Rust (currently **1.84.x**). Command logic lives in `*_inner` helpers so CI does not need the Tauri webview stack.
-- **Desktop / DMG path** (`cargo tauri build` with `--features desktop`): Tauri 2 and recent transitive crates may require a **newer Rust than 1.84** (often **1.85+**). Install or upgrade with `rustup update stable` before packaging if the build rejects the toolchain.
+- **Library / CI path** (`cargo test --workspace`, no `desktop` feature): keep working on the pinned workspace Rust (see `rust-toolchain.toml`). Command logic lives in `*_inner` helpers so CI does not need the Tauri webview stack.
+- **Desktop / DMG path** (`cargo tauri build` with `--features desktop`): use the pinned toolchain (currently **1.88**). Install or upgrade with `rustup` if the build rejects the toolchain.
 - Do not raise the workspace MSRV solely for packaging if it breaks the library-testable CI path; use a newer toolchain only on release machines when needed.
 
 ### Other prerequisites
@@ -25,8 +27,6 @@ Local-only Tauri desktop app. Bundle identity:
 
 ## Icons
 
-`src-tauri/tauri.conf.json` → `bundle.icon` is empty until brand assets land. Before a public DMG:
-
 ```bash
 # Place source PNG (1024×1024), then:
 cargo tauri icon path/to/app-icon.png
@@ -36,11 +36,10 @@ cargo tauri icon path/to/app-icon.png
 
 ```bash
 cd src-tauri
-# Use a Rust toolchain that satisfies Tauri 2 if 1.84 is insufficient:
 cargo tauri build --features desktop --bundles dmg
 ```
 
-Artifacts land under `src-tauri/target/release/bundle/`. Without signing identity this produces an unsigned DMG suitable only for local smoke tests.
+Artifacts land under `target/release/bundle/` (or `src-tauri/target/release/bundle/`). Without signing identity this produces an unsigned DMG suitable only for local smoke tests.
 
 ## Signing
 
@@ -81,16 +80,21 @@ xcrun stapler validate "target/release/bundle/dmg/"*.dmg
 
 ## Manual QA after install
 
-1. Fresh install from DMG → Setup → save Jira + Gemini credentials (keychain).
-2. Full sync sample site → dashboards populate.
+1. Fresh install from DMG → Setup → save Jira + optional Bedrock credentials (keychain).
+2. Full sync on allowlisted network (office/VPN) → dashboards populate.
 3. Quit mid-sync → relaunch → resume / incremental.
 4. Offline: disconnect network → Home/Flow still load from SQLite; SyncBanner shows offline copy.
-5. Bad token: force 401/403 → banner + Setup prompt to refresh credentials (secrets stay in keychain until replaced).
+5. Bad token / IP allowlist: force 401/403 → banner + Settings prompt.
 6. Maintenance: **Rebuild derived** (raw issues retained) vs **Full re-sync** (checkpoints cleared, credentials kept).
-7. Ask AI once with context pack preview visible.
+7. Ask AI once with context pack preview visible (if Bedrock key set).
+
+## Related
+
+- Windows build / NSIS: [windows.md](./windows.md)
+- Combined install page: [install.md](./install.md)
 
 ## Deferred
 
-- Windows / Linux installers
+- Prebuilt Windows/Linux download artifacts in CI
 - Auto-update channel
 - Shared DB snapshots

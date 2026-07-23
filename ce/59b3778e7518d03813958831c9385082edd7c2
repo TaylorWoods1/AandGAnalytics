@@ -1,0 +1,56 @@
+crates/ag_jira/src/error.rs
+  s_93508c65e06030::t_93df5d2e0da62f 20,24-26
+crates/ag_jira/src/client.rs
+  s_93508c65e06030::t_6fa4e673576e27 522-539
+  s_93508c65e06030::t_eddbcbdf4108f1 414-433
+  s_93508c65e06030::t_e1eb69be447cff 367-374,394-398
+  s_93508c65e06030::t_8b42489a869567 132-134,144,155,157-160,167,169-172,181,183-186,191-207
+  s_93508c65e06030::t_676856afe42317 335-362
+docs/release/install.md
+  s_93508c65e06030::t_94c73d6ef174d9 1-101
+crates/ag_credentials/src/store.rs
+  s_93508c65e06030::t_81666a22279516 243-244
+docs/release/windows.md
+  s_93508c65e06030::t_2196991f566f67 1-63
+ui/src/pages/SetupPage.test.tsx
+  s_93508c65e06030::t_f0482af429b015 109-114,129-146,148
+  s_93508c65e06030::t_89c6ffcc11047f 101,115,119-128
+docs/release/macos.md
+  s_93508c65e06030::t_45cc74b6b711cb 3-5,17-18,42,83-84,87,89-94,98
+ui/src/styles.css
+  s_93508c65e06030::t_6ef8d4263d00f4 160-233
+src-tauri/src/commands/setup.rs
+  s_93508c65e06030::t_dc02b59481181b 67-75,83-86
+  s_93508c65e06030::t_0e21ea8d95880b 137-139,143-146
+  s_93508c65e06030::t_7ca2d5fcc38154 148-153,156-160
+crates/ag_sync/src/engine.rs
+  s_93508c65e06030::t_e2d75cfbbe8345 105
+  s_93508c65e06030::t_4d017c4874a209 72
+ui/src/pages/SetupPage.tsx
+  s_93508c65e06030::t_47d3d57eb825f8 61
+  s_93508c65e06030::t_44f6c832982270 115,137
+  s_93508c65e06030::t_cd87539f03fb6c 221-224,230,243-244,248
+  s_93508c65e06030::t_57c4d94a4aeaab 306,314-315
+  s_93508c65e06030::t_b3821e377d7e3b 384-389,391-400,402-406
+  s_93508c65e06030::t_ae380a550369ce 13,22-46,56,59,68,76-85,103,108-114,116,119-130,132,136,138-139,141-148,150-187,199-213,229,271-272,276,358-374
+  s_93508c65e06030::t_8ded6357d788a7 20
+ui/src/lib/syncErrors.ts
+  s_93508c65e06030::t_c63ab25f42317d 33
+  s_93508c65e06030::t_6808047cb4e70f 5-10
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "ce59b3778e7518d03813958831c9385082edd7c2",
+  "prompts": {},
+  "sessions": {
+    "s_93508c65e06030": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b0fc9626-0a58-47fe-9649-91f7b56c72cd",
+        "model": "default"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

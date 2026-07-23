@@ -1,0 +1,25 @@
+ui/src/lib/filters.test.tsx
+  s_c3a0204d20ac69::t_c7007fc4b98c7a 1-45
+ui/src/lib/filterOptions.tsx
+  s_c3a0204d20ac69::t_b7b168b9f5788f 1-70
+ui/src/lib/tauri.ts
+  s_c3a0204d20ac69::t_0788ebcaed2522 199-208
+ui/src/lib/filters.tsx
+  s_c3a0204d20ac69::t_a3aec9f2431888 1-82
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "0d0b1b366d9ea822e7bf0e779080a67462614b13",
+  "prompts": {},
+  "sessions": {
+    "s_c3a0204d20ac69": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "c205ff21-61ff-4054-9714-510613247616",
+        "model": "composer-2.5-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

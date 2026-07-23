@@ -1,0 +1,58 @@
+src-tauri/src/commands/maintenance.rs
+  s_93508c65e06030::t_949a38070bd110 91
+src-tauri/src/commands/setup.rs
+  s_93508c65e06030::t_e93d2f24a3dee9 251
+package.json
+  s_93508c65e06030::t_81a92b6ee2e8a5 5-6
+src-tauri/src/lib.rs
+  s_93508c65e06030::t_3801e2271a2c05 41-42,44-60
+src-tauri/icons/android/mipmap-anydpi-v26/ic_launcher.xml
+  s_93508c65e06030::t_21b49455bf5bbe 1-5
+ui/src/components/SecretField.tsx
+  s_93508c65e06030::t_4ccc4c2916bbfc 2-9,11-83
+  s_93508c65e06030::t_409e4950de30f0 1,10
+ui/src/pages/SetupPage.test.tsx
+  s_93508c65e06030::t_704e7eea62e2c4 4,57-65,68-69,73-86
+  s_93508c65e06030::t_7a3d31e7deb9f3 34,37,40
+  s_93508c65e06030::t_00841d6511064f 89-90,93-109
+  s_93508c65e06030::t_7bc85ceef37430 91-92
+  s_93508c65e06030::t_e524ebeaaad71a 67,70-72,87-88
+src-tauri/src/commands/sync.rs
+  s_93508c65e06030::t_233416437d3941 100
+rust-toolchain.toml
+  s_93508c65e06030::t_831d049d478a33 1-2
+src-tauri/src/commands/metrics.rs
+  s_93508c65e06030::t_9f75b9d3e9d513 739
+ui/src/styles.css
+  s_93508c65e06030::t_590d2b2c99e0ee 78-113,127
+  s_93508c65e06030::t_f7d9facf3a59c8 32-37,42,48,60-75
+src-tauri/icons/android/values/ic_launcher_background.xml
+  s_93508c65e06030::t_21b49455bf5bbe 1-4
+.gitignore
+  s_93508c65e06030::t_08964357bc92d4 11
+src-tauri/tauri.conf.json
+  s_93508c65e06030::t_c3a3f456af99b6 7-10,12-15
+  s_93508c65e06030::t_966a0143859556 34-40
+src-tauri/src/commands/ai.rs
+  s_93508c65e06030::t_71030cdd1959dd 98
+ui/src/pages/SetupPage.tsx
+  s_93508c65e06030::t_b1a9f9942c3e8a 3,95,97,101-116,119,121,125-136,146
+  s_93508c65e06030::t_3701f661a451cd 7-9,11,23-24,39,74-76
+  s_93508c65e06030::t_7ab09fdd8e2ee8 73,77,79,85-86,90-93
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "725daff021460a2dc00b8b6fa92d70dec16e3519",
+  "prompts": {},
+  "sessions": {
+    "s_93508c65e06030": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b0fc9626-0a58-47fe-9649-91f7b56c72cd",
+        "model": "default"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

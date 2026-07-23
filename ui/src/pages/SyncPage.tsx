@@ -3,10 +3,13 @@ import { Link } from 'react-router-dom';
 import SyncBanner from '../components/SyncBanner';
 import {
   fullResync,
+  getStoryPointsMapping,
   getSyncProgress,
   rebuildDerived,
+  setStoryPointsMapping,
   startFullSync,
   subscribeSyncProgress,
+  type StoryPointsMapping,
   type SyncProgress,
 } from '../lib/tauri';
 
@@ -30,6 +33,9 @@ function etaText(progress: SyncProgress | null): string {
 export default function SyncPage() {
   const [progress, setProgress] = useState<SyncProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mapping, setMapping] = useState<StoryPointsMapping | null>(null);
+  const [selectedFieldId, setSelectedFieldId] = useState('');
+  const [mappingBusy, setMappingBusy] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -48,6 +54,16 @@ export default function SyncPage() {
         if (active) {
           setError(err instanceof Error ? err.message : String(err));
         }
+      }
+
+      try {
+        const nextMapping = await getStoryPointsMapping();
+        if (active) {
+          setMapping(nextMapping);
+          setSelectedFieldId(nextMapping.jira_field_id ?? nextMapping.candidates[0]?.id ?? '');
+        }
+      } catch {
+        // Mapping is optional until the first sync discovers fields.
       }
 
       try {
@@ -81,6 +97,16 @@ export default function SyncPage() {
     [progress],
   );
 
+  const needsStoryPointsPick = useMemo(() => {
+    if (!mapping) {
+      return false;
+    }
+    return (
+      mapping.status !== 'resolved' &&
+      mapping.candidates.some((candidate) => candidate.id.trim().length > 0)
+    );
+  }, [mapping]);
+
   async function onRetry() {
     setError(null);
     try {
@@ -105,6 +131,22 @@ export default function SyncPage() {
       await fullResync();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  async function onSaveStoryPointsMapping() {
+    if (!selectedFieldId || mappingBusy) {
+      return;
+    }
+    setMappingBusy(true);
+    setError(null);
+    try {
+      const next = await setStoryPointsMapping(selectedFieldId);
+      setMapping(next);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setMappingBusy(false);
     }
   }
 
@@ -139,6 +181,32 @@ export default function SyncPage() {
             </p>
           ) : null}
         </>
+      ) : null}
+
+      {needsStoryPointsPick ? (
+        <section className="story-points-mapping" aria-label="Story points field">
+          <h2>Story points field</h2>
+          <p>Multiple Jira fields matched story points. Choose the field to use for analytics.</p>
+          <label htmlFor="story-points-field">Jira field</label>
+          <select
+            id="story-points-field"
+            value={selectedFieldId}
+            onChange={(event) => setSelectedFieldId(event.target.value)}
+          >
+            {mapping?.candidates.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                {candidate.name} ({candidate.id})
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            disabled={!selectedFieldId || mappingBusy}
+            onClick={() => void onSaveStoryPointsMapping()}
+          >
+            {mappingBusy ? 'Saving…' : 'Save story points mapping'}
+          </button>
+        </section>
       ) : null}
 
       <section className="maintenance-actions" aria-label="Maintenance">

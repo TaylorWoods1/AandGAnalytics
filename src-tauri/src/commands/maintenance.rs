@@ -24,6 +24,27 @@ pub fn reset_sync_checkpoints(conn: &Connection) -> Result<(), String> {
     Ok(())
 }
 
+/// Remove local issues and dependent rows so a full re-sync cannot leave orphans.
+///
+/// Keeps credentials (keychain), `projects`, `field_map`, and non-watermark `meta`.
+pub fn clear_raw_issue_data(conn: &Connection) -> Result<(), String> {
+    conn.execute_batch(
+        "DELETE FROM issue_changelog;
+         DELETE FROM sprint_issues;
+         DELETE FROM worklogs;
+         DELETE FROM issue_links;
+         DELETE FROM derived_time_in_status;
+         DELETE FROM derived_issue_cycle;
+         DELETE FROM derived_throughput_daily;
+         DELETE FROM derived_sprint_metrics;
+         DELETE FROM derived_epic_risk;
+         DELETE FROM issues;
+         DELETE FROM sprints;",
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 /// Open the app DB and rebuild derived analytics from raw data.
 pub fn rebuild_derived_inner(state: &AppState) -> Result<(), String> {
     if state.is_running()? {
@@ -59,6 +80,8 @@ where
         let conn = open_db(&state.db_path).map_err(|e| e.to_string())?;
         migrate(&conn).map_err(|e| e.to_string())?;
         reset_sync_checkpoints(&conn)?;
+        // Drop local issue graph so deleted Jira issues cannot inflate metrics.
+        clear_raw_issue_data(&conn)?;
     }
 
     start_full_sync_inner(state, on_progress).await
@@ -164,5 +187,40 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM issues", [], |r| r.get(0))
             .unwrap();
         assert_eq!(issues, 1);
+    }
+
+    #[test]
+    fn clear_raw_issue_data_removes_issues_keeps_field_map() {
+        let (_dir, db) = db_with_one_issue_and_stale_derived();
+        db.execute(
+            "INSERT INTO field_map (logical_name, jira_field_id, jira_field_name, status)
+             VALUES ('story_points', 'customfield_10016', 'Story Points', 'resolved')",
+            [],
+        )
+        .unwrap();
+        db.execute(
+            "INSERT INTO projects (id, key, name) VALUES ('1', 'DEMO', 'Demo')",
+            [],
+        )
+        .unwrap();
+
+        clear_raw_issue_data(&db).unwrap();
+
+        let issues: i64 = db
+            .query_row("SELECT COUNT(*) FROM issues", [], |r| r.get(0))
+            .unwrap();
+        let derived: i64 = db
+            .query_row("SELECT COUNT(*) FROM derived_issue_cycle", [], |r| r.get(0))
+            .unwrap();
+        let field_maps: i64 = db
+            .query_row("SELECT COUNT(*) FROM field_map", [], |r| r.get(0))
+            .unwrap();
+        let projects: i64 = db
+            .query_row("SELECT COUNT(*) FROM projects", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(issues, 0);
+        assert_eq!(derived, 0);
+        assert_eq!(field_maps, 1);
+        assert_eq!(projects, 1);
     }
 }

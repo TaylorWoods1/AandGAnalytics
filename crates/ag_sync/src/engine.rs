@@ -388,41 +388,68 @@ fn apply_story_points_mapping(conn: &Connection, fields: &[JiraField]) -> Result
     candidates.sort_by(|a, b| a.id.cmp(&b.id));
     candidates.dedup_by(|a, b| a.id == b.id);
 
+    let candidates_json = serde_json::to_string(
+        &candidates
+            .iter()
+            .map(|f| serde_json::json!({ "id": f.id, "name": f.name }))
+            .collect::<Vec<_>>(),
+    )
+    .unwrap_or_else(|_| "[]".into());
+
+    // Preserve a user-confirmed mapping when discovery stays ambiguous.
+    let existing = resolved_story_points_field(conn)?;
+    if existing.is_some() && candidates.len() != 1 {
+        conn.execute(
+            "UPDATE field_map SET candidates_json = ?1 WHERE logical_name = ?2",
+            params![candidates_json, FIELD_STORY_POINTS],
+        )?;
+        return Ok(());
+    }
+
     match candidates.as_slice() {
         [] => {
             conn.execute(
-                "INSERT INTO field_map (logical_name, jira_field_id, jira_field_name, status)
-                 VALUES (?1, NULL, NULL, 'unresolved')
-                 ON CONFLICT(logical_name) DO UPDATE SET status = 'unresolved'",
-                params![FIELD_STORY_POINTS],
+                "INSERT INTO field_map (
+                    logical_name, jira_field_id, jira_field_name, status, candidates_json
+                 ) VALUES (?1, NULL, NULL, 'unresolved', ?2)
+                 ON CONFLICT(logical_name) DO UPDATE SET
+                    jira_field_id = NULL,
+                    jira_field_name = NULL,
+                    status = 'unresolved',
+                    candidates_json = excluded.candidates_json",
+                params![FIELD_STORY_POINTS, candidates_json],
             )?;
         }
         [one] => {
             conn.execute(
-                "INSERT INTO field_map (logical_name, jira_field_id, jira_field_name, status)
-                 VALUES (?1, ?2, ?3, 'resolved')
+                "INSERT INTO field_map (
+                    logical_name, jira_field_id, jira_field_name, status, candidates_json
+                 ) VALUES (?1, ?2, ?3, 'resolved', ?4)
                  ON CONFLICT(logical_name) DO UPDATE SET
                     jira_field_id = excluded.jira_field_id,
                     jira_field_name = excluded.jira_field_name,
-                    status = 'resolved'",
-                params![FIELD_STORY_POINTS, one.id, one.name],
+                    status = 'resolved',
+                    candidates_json = excluded.candidates_json",
+                params![FIELD_STORY_POINTS, one.id, one.name, candidates_json],
             )?;
         }
         many => {
-            // Ambiguous — leave unresolved for UI confirmation (Task 10).
+            // Ambiguous — leave unresolved for UI confirmation.
             let names: String = many
                 .iter()
                 .map(|f| f.name.as_str())
                 .collect::<Vec<_>>()
                 .join(", ");
             conn.execute(
-                "INSERT INTO field_map (logical_name, jira_field_id, jira_field_name, status)
-                 VALUES (?1, NULL, ?2, 'unresolved')
+                "INSERT INTO field_map (
+                    logical_name, jira_field_id, jira_field_name, status, candidates_json
+                 ) VALUES (?1, NULL, ?2, 'unresolved', ?3)
                  ON CONFLICT(logical_name) DO UPDATE SET
                     jira_field_id = NULL,
                     jira_field_name = excluded.jira_field_name,
-                    status = 'unresolved'",
-                params![FIELD_STORY_POINTS, names],
+                    status = 'unresolved',
+                    candidates_json = excluded.candidates_json",
+                params![FIELD_STORY_POINTS, names, candidates_json],
             )?;
         }
     }

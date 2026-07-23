@@ -5,21 +5,51 @@ use rusqlite::Connection;
 use crate::connection::DbError;
 
 /// Current schema version stored in `PRAGMA user_version`.
-pub const SCHEMA_VERSION: i32 = 1;
+pub const SCHEMA_VERSION: i32 = 2;
 
 /// Apply pending migrations to `conn` (idempotent).
 pub fn migrate(conn: &Connection) -> Result<(), DbError> {
     let version: i32 = conn.pragma_query_value(None, "user_version", |row| row.get(0))?;
-    if version < SCHEMA_VERSION {
+    if version < 1 {
         conn.execute_batch(include_str!("schema.sql"))?;
         conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        return Ok(());
+    }
+    if version < 2 {
+        migrate_v2(conn)?;
+        conn.pragma_update(None, "user_version", 2)?;
     }
     Ok(())
 }
 
+fn migrate_v2(conn: &Connection) -> Result<(), DbError> {
+    if !column_exists(conn, "derived_epic_risk", "drivers_json")? {
+        conn.execute(
+            "ALTER TABLE derived_epic_risk ADD COLUMN drivers_json TEXT",
+            [],
+        )?;
+    }
+    if !column_exists(conn, "field_map", "candidates_json")? {
+        conn.execute("ALTER TABLE field_map ADD COLUMN candidates_json TEXT", [])?;
+    }
+    Ok(())
+}
+
+fn column_exists(conn: &Connection, table: &str, column: &str) -> Result<bool, DbError> {
+    let mut stmt = conn.prepare(&format!("PRAGMA table_info({table})"))?;
+    let rows = stmt.query_map([], |row| row.get::<_, String>(1))?;
+    for row in rows {
+        if row? == column {
+            return Ok(true);
+        }
+    }
+    Ok(false)
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::{migrate, open_db};
+    use crate::{migrate, open_db, SCHEMA_VERSION};
+    use rusqlite::Connection;
 
     #[test]
     fn migrate_creates_core_tables() {
@@ -38,9 +68,64 @@ mod tests {
             "sprints",
             "sync_checkpoints",
             "derived_issue_cycle",
+            "derived_epic_risk",
+            "field_map",
         ] {
             let found: Option<String> = stmt.query_row([table], |r| r.get(0)).ok();
             assert_eq!(found.as_deref(), Some(table), "missing table {table}");
         }
+
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn migrate_v2_adds_drivers_and_candidates_columns() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("v1.db");
+        let conn = Connection::open(&path).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE derived_epic_risk (
+                epic_key TEXT PRIMARY KEY NOT NULL,
+                risk_score REAL,
+                finish_by_probability REAL,
+                assumptions_json TEXT
+             );
+             CREATE TABLE field_map (
+                logical_name TEXT PRIMARY KEY NOT NULL,
+                jira_field_id TEXT,
+                jira_field_name TEXT,
+                status TEXT NOT NULL DEFAULT 'unresolved'
+             );",
+        )
+        .unwrap();
+        conn.pragma_update(None, "user_version", 1).unwrap();
+
+        migrate(&conn).unwrap();
+
+        let drivers: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('derived_epic_risk')
+                 WHERE name = 'drivers_json'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let candidates: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('field_map')
+                 WHERE name = 'candidates_json'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(drivers, 1);
+        assert_eq!(candidates, 1);
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 2);
     }
 }

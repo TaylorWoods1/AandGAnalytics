@@ -48,6 +48,28 @@ export async function fullResync(): Promise<void> {
   await tauriInvoke('full_resync');
 }
 
+export type FieldCandidate = {
+  id: string;
+  name: string;
+};
+
+export type StoryPointsMapping = {
+  status: string;
+  jira_field_id: string | null;
+  jira_field_name: string | null;
+  candidates: FieldCandidate[];
+};
+
+export async function getStoryPointsMapping(): Promise<StoryPointsMapping> {
+  return tauriInvoke<StoryPointsMapping>('get_story_points_mapping');
+}
+
+export async function setStoryPointsMapping(jiraFieldId: string): Promise<StoryPointsMapping> {
+  return tauriInvoke<StoryPointsMapping>('set_story_points_mapping', {
+    jira_field_id: jiraFieldId,
+  });
+}
+
 export async function getSyncProgress(): Promise<SyncProgress> {
   return tauriInvoke<SyncProgress>('get_sync_progress');
 }

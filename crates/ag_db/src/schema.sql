@@ -1,4 +1,4 @@
--- Raw + meta + derived stubs for AandG Analytics (schema version 1).
+-- Raw + meta + derived stubs for AandG Analytics (schema version 2).
 
 CREATE TABLE IF NOT EXISTS meta (
     key TEXT PRIMARY KEY NOT NULL,
@@ -103,7 +103,8 @@ CREATE TABLE IF NOT EXISTS field_map (
     logical_name TEXT PRIMARY KEY NOT NULL,
     jira_field_id TEXT,
     jira_field_name TEXT,
-    status TEXT NOT NULL DEFAULT 'unresolved'
+    status TEXT NOT NULL DEFAULT 'unresolved',
+    candidates_json TEXT
 );
 
 -- Derived stubs (populated by later analytics/risk tasks).
@@ -143,5 +144,6 @@ CREATE TABLE IF NOT EXISTS derived_epic_risk (
     epic_key TEXT PRIMARY KEY NOT NULL,
     risk_score REAL,
     finish_by_probability REAL,
-    assumptions_json TEXT
+    assumptions_json TEXT,
+    drivers_json TEXT
 );

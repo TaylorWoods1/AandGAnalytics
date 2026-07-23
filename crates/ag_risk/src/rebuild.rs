@@ -33,15 +33,19 @@ pub fn rebuild_epic_risk(conn: &Connection, now: DateTime<Utc>) -> Result<(), Ri
 
         let assumptions_json = serde_json::to_string(&finish.assumptions)
             .map_err(|e| RiskError::Other(e.to_string()))?;
+        let drivers_json =
+            serde_json::to_string(&risk.drivers).map_err(|e| RiskError::Other(e.to_string()))?;
 
         conn.execute(
-            "INSERT INTO derived_epic_risk (epic_key, risk_score, finish_by_probability, assumptions_json)
-             VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO derived_epic_risk (
+                epic_key, risk_score, finish_by_probability, assumptions_json, drivers_json
+             ) VALUES (?1, ?2, ?3, ?4, ?5)",
             params![
                 risk.epic_key,
                 risk.score,
                 finish.probability,
                 assumptions_json,
+                drivers_json,
             ],
         )?;
     }
@@ -379,17 +383,22 @@ mod tests {
         let now = Utc.with_ymd_and_hms(2024, 1, 15, 12, 0, 0).unwrap();
         rebuild_epic_risk(&conn, now).unwrap();
 
-        let (score, prob, assumptions): (f64, f64, String) = conn
+        let (score, prob, assumptions, drivers): (f64, f64, String, String) = conn
             .query_row(
-                "SELECT risk_score, finish_by_probability, assumptions_json
+                "SELECT risk_score, finish_by_probability, assumptions_json, drivers_json
                  FROM derived_epic_risk WHERE epic_key = 'EPIC-1'",
                 [],
-                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
             )
             .unwrap();
 
         assert!((0.0..=100.0).contains(&score));
         assert!((0.0..=1.0).contains(&prob));
         assert!(assumptions.contains("throughput") || assumptions.contains("Weekly"));
+        assert!(
+            drivers.contains("Throughput") || drivers.contains("pressure"),
+            "expected score_epic drivers, got {drivers}"
+        );
+        assert_ne!(drivers, assumptions);
     }
 }

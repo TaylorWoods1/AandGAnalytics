@@ -83,15 +83,18 @@ xcrun stapler validate "target/release/bundle/dmg/"*.dmg
 1. Fresh install from DMG → Setup → save Jira + optional Bedrock credentials (keychain).
 2. Full sync on allowlisted network (office/VPN) → dashboards populate.
 3. Quit mid-sync → relaunch → resume / incremental.
-4. Offline: disconnect network → Home/Flow still load from SQLite; SyncBanner shows offline copy.
+4. Offline: disconnect network → Home/Flow/Performance still load from SQLite; SyncBanner shows offline copy.
 5. Bad token / IP allowlist: force 401/403 → banner + Settings prompt.
 6. Maintenance: **Rebuild derived** (raw issues retained) vs **Full re-sync** (checkpoints cleared, credentials kept).
-7. Ask AI once with context pack preview visible (if Bedrock key set).
+7. Ask AI once with context pack preview visible (if Bedrock key set); preview should mention person/project completions when data exists.
+8. **Performance:** after rebuild derived, open **Performance** — people velocity and project breakdown populate; filter by a known project key; with ≥2 months of completions, person×month shows rate change (not all "—").
+9. **Home:** executive sections (top movers, top projects, blocker hotspots) and links to Performance / Flow.
 
 ## Related
 
 - Windows build / NSIS: [windows.md](./windows.md)
 - Combined install page: [install.md](./install.md)
+- Performance metric defs: [../superpowers/specs/2026-07-23-performance-analytics-design.md](../superpowers/specs/2026-07-23-performance-analytics-design.md)
 
 ## Deferred
 

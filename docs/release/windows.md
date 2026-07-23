@@ -50,9 +50,11 @@ cargo tauri dev --features desktop
 2. Confirm you are on **A&G network / VPN** (IP allowlist); otherwise Test connection returns 403.
 3. Full sync → dashboards populate.
 4. Quit mid-sync → relaunch → resume / incremental.
-5. Offline: dashboards still load from SQLite.
+5. Offline: Home / Flow / Performance still load from SQLite.
 6. Settings → Test connection / Clear credentials & local data.
 7. Ask AI once if Bedrock key is configured.
+8. **Performance:** rebuild derived → Performance page shows people/project sections; filter by project; rate change appears when ≥2 months of completion data exist.
+9. **Home:** movers / top projects / blocker hotspots and Performance link.
 
 ## Signing (optional)
 

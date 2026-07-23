@@ -1,0 +1,19 @@
+ui/src/pages/HomePage.test.tsx
+  s_93508c65e06030::t_6756f77cdc6d8e 69
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "bd997ec7f3b057f678f177d4981a6ed08f62e01a",
+  "prompts": {},
+  "sessions": {
+    "s_93508c65e06030": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b0fc9626-0a58-47fe-9649-91f7b56c72cd",
+        "model": "default"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

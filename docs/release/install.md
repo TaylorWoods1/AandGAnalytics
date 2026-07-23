@@ -92,6 +92,8 @@ Run the `.exe` installer, then launch **Jira Analytics** and complete Setup.
 
 Credentials stay on the device. Sync data is local SQLite under the OS app data directory.
 
+After the first full sync (or **Rebuild derived** on Sync), open **Performance** for people/project throughput and **Home** for the executive summary. Metric definitions: [../superpowers/specs/2026-07-23-performance-analytics-design.md](../superpowers/specs/2026-07-23-performance-analytics-design.md).
+
 ### Windows notes
 
 - Unsigned builds may trigger SmartScreen → **More info → Run anyway**

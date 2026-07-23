@@ -209,7 +209,99 @@ fn build_metrics_markdown(
         }
     }
 
+    append_performance_rollups(conn, filter, &mut md)?;
+
     Ok(md)
+}
+
+fn append_performance_rollups(
+    conn: &Connection,
+    filter: &MetricsFilter,
+    md: &mut String,
+) -> Result<(), BedrockError> {
+    // Skip silently if performance tables are empty / missing (pre-migrate DBs).
+    let table_ok: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master
+             WHERE type='table' AND name='derived_completions'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap_or(0);
+    if table_ok == 0 {
+        return Ok(());
+    }
+
+    let mut clauses = Vec::new();
+    let mut params: Vec<Box<dyn ToSql>> = Vec::new();
+    if let Some(keys) = &filter.project_keys {
+        if !keys.is_empty() {
+            let placeholders = vec!["?"; keys.len()].join(", ");
+            clauses.push(format!("dc.project_key IN ({placeholders})"));
+            for k in keys {
+                params.push(Box::new(k.clone()));
+            }
+        }
+    }
+    if let Some(from) = &filter.from {
+        clauses.push("substr(dc.completed_at, 1, 10) >= ?".into());
+        params.push(Box::new(from.clone()));
+    }
+    if let Some(to) = &filter.to {
+        clauses.push("substr(dc.completed_at, 1, 10) <= ?".into());
+        params.push(Box::new(to.clone()));
+    }
+    let where_sql = if clauses.is_empty() {
+        "1=1".into()
+    } else {
+        clauses.join(" AND ")
+    };
+
+    let person_sql = format!(
+        "SELECT dc.finisher_account_id, COUNT(*)
+         FROM derived_completions dc
+         WHERE {where_sql} AND dc.finisher_account_id IS NOT NULL
+         GROUP BY dc.finisher_account_id
+         ORDER BY COUNT(*) DESC
+         LIMIT 5"
+    );
+    let mut person_stmt = conn.prepare(&person_sql)?;
+    let people: Vec<(String, i64)> = person_stmt
+        .query_map(
+            params_from_iter(params.iter().map(|p| p.as_ref())),
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let project_sql = format!(
+        "SELECT dc.project_key, COUNT(*)
+         FROM derived_completions dc
+         WHERE {where_sql}
+         GROUP BY dc.project_key
+         ORDER BY COUNT(*) DESC
+         LIMIT 5"
+    );
+    let mut project_stmt = conn.prepare(&project_sql)?;
+    let projects: Vec<(String, i64)> = project_stmt
+        .query_map(
+            params_from_iter(params.iter().map(|p| p.as_ref())),
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?
+        .collect::<Result<Vec<_>, _>>()?;
+
+    if people.is_empty() && projects.is_empty() {
+        md.push_str("- performance_throughput: (none)\n");
+        return Ok(());
+    }
+
+    md.push_str("- performance_throughput (top finishers / projects by completed tickets):\n");
+    for (account_id, count) in &people {
+        md.push_str(&format!("  - person:{account_id} = {count} completed\n"));
+    }
+    for (project_key, count) in &projects {
+        md.push_str(&format!("  - project:{project_key} = {count} completed\n"));
+    }
+    Ok(())
 }
 
 fn load_supporting_issues(
@@ -485,6 +577,16 @@ mod tests {
             [],
         )
         .unwrap();
+        conn.execute(
+            "INSERT INTO derived_completions (
+                issue_id, project_key, completed_at, finisher_account_id, story_points, attribution
+             ) VALUES
+             ('id-1', 'PROJ', '2025-05-10T00:00:00+00:00', 'finisher-ada', 3.0, 'current'),
+             ('id-2', 'PROJ', '2025-05-11T00:00:00+00:00', 'finisher-ada', 2.0, 'current'),
+             ('id-3', 'PROJ', '2025-05-12T00:00:00+00:00', 'finisher-bob', 1.0, 'changelog')",
+            [],
+        )
+        .unwrap();
 
         let filter = MetricsFilter {
             project_keys: Some(vec!["PROJ".into()]),
@@ -509,5 +611,20 @@ mod tests {
         assert!(pack.filter_summary.contains("PROJ"));
         assert!(pack.metrics_markdown.contains("bottleneck:Code Review"));
         assert!(pack.approx_tokens > 0);
+    }
+
+    #[test]
+    fn context_pack_includes_performance_person_and_project_lines() {
+        let pack = build_context_pack_from_fixture(8_000);
+        assert!(
+            pack.metrics_markdown.contains("person:finisher-ada"),
+            "expected person throughput line, got:\n{}",
+            pack.metrics_markdown
+        );
+        assert!(
+            pack.metrics_markdown.contains("project:PROJ"),
+            "expected project throughput line, got:\n{}",
+            pack.metrics_markdown
+        );
     }
 }

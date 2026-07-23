@@ -49,7 +49,7 @@ export default function HomePage() {
   return (
     <main className="page dashboard-page">
       <header className="dashboard-header">
-        <h1>AandG Analytics</h1>
+        <h1>Jira Analytics</h1>
         <nav className="dashboard-nav">
           <Link to="/" aria-current="page">
             Home

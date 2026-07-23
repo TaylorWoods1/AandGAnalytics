@@ -61,7 +61,7 @@ describe('App', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByRole('heading', { name: /aandg analytics/i })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: /jira analytics/i })).toBeInTheDocument();
     });
   });
 });

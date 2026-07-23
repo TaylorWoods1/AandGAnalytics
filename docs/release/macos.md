@@ -1,10 +1,10 @@
-# macOS release checklist (AandG Analytics)
+# macOS release checklist (Jira Analytics)
 
 Local-only Tauri desktop app. Bundle identity:
 
 | Field | Value |
 |-------|-------|
-| `productName` | AandG Analytics |
+| `productName` | Jira Analytics |
 | `identifier` | `com.aandganalytics.app` |
 | Artifact | Signed + notarized `.dmg` (`.app` also produced) |
 
@@ -75,7 +75,7 @@ Tauri signs, notarizes, and staples when these variables (and identity) are pres
 Verify:
 
 ```bash
-spctl --assess --type open --verbose "target/release/bundle/macos/AandG Analytics.app"
+spctl --assess --type open --verbose "target/release/bundle/macos/Jira Analytics.app"
 xcrun stapler validate "target/release/bundle/dmg/"*.dmg
 ```
 

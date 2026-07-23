@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "AandG Analytics",
+  "productName": "Jira Analytics",
   "version": "0.1.0",
   "identifier": "com.aandganalytics.app",
   "build": {
@@ -18,7 +18,7 @@
   "app": {
     "windows": [
       {
-        "title": "A&G Analytics",
+        "title": "Jira Analytics",
         "width": 1280,
         "height": 800,
         "resizable": true

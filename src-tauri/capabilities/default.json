@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default capabilities for AandG Analytics",
+  "description": "Default capabilities for Jira Analytics",
   "windows": ["main"],
   "permissions": ["core:default", "core:event:default"]
 }

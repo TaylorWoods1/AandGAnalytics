@@ -1,4 +1,4 @@
-//! Tauri application shell for AandG Analytics.
+//! Tauri application shell for Jira Analytics.
 //!
 //! Command logic is library-testable via `*_inner` helpers. The full webview app
 //! is compiled behind the `desktop` feature (`--features desktop`).
@@ -11,7 +11,7 @@ pub use commands::MetricsFilter;
 pub use state::{default_db_path, AppState, SyncHandle, SyncProgress};
 
 pub fn app_name() -> &'static str {
-    "AandG Analytics"
+    "Jira Analytics"
 }
 
 /// Run the Tauri desktop application (requires `--features desktop`).
@@ -60,7 +60,7 @@ pub fn run() {
             commands::maintenance::tauri_cmds::full_resync,
         ])
         .run(tauri::generate_context!())
-        .expect("error while running AandG Analytics");
+        .expect("error while running Jira Analytics");
 }
 
 #[cfg(test)]
@@ -69,6 +69,6 @@ mod tests {
 
     #[test]
     fn app_name_is_wired() {
-        assert_eq!(app_name(), "AandG Analytics");
+        assert_eq!(app_name(), "Jira Analytics");
     }
 }

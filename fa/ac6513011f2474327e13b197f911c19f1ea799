@@ -1,0 +1,19 @@
+ui/src/pages/HomePage.tsx
+  s_93508c65e06030::t_7222667fce9f85 1-2,5,9,12,14,16,20-21,27-28,32-33,37-38,47-76,79,85-88,98-172
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "faac6513011f2474327e13b197f911c19f1ea799",
+  "prompts": {},
+  "sessions": {
+    "s_93508c65e06030": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b0fc9626-0a58-47fe-9649-91f7b56c72cd",
+        "model": "default"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

@@ -147,3 +147,25 @@ CREATE TABLE IF NOT EXISTS derived_epic_risk (
     assumptions_json TEXT,
     drivers_json TEXT
 );
+
+CREATE TABLE IF NOT EXISTS derived_completions (
+    issue_id TEXT PRIMARY KEY NOT NULL,
+    project_key TEXT NOT NULL,
+    completed_at TEXT NOT NULL,
+    finisher_account_id TEXT,
+    story_points REAL,
+    attribution TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_derived_completions_finisher_month
+    ON derived_completions (finisher_account_id, completed_at);
+CREATE INDEX IF NOT EXISTS idx_derived_completions_project
+    ON derived_completions (project_key, completed_at);
+
+CREATE TABLE IF NOT EXISTS derived_person_month (
+    month TEXT NOT NULL,
+    account_id TEXT NOT NULL,
+    completed_count INTEGER NOT NULL,
+    points REAL,
+    PRIMARY KEY (month, account_id)
+);

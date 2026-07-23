@@ -5,7 +5,7 @@ use rusqlite::Connection;
 use crate::connection::DbError;
 
 /// Current schema version stored in `PRAGMA user_version`.
-pub const SCHEMA_VERSION: i32 = 2;
+pub const SCHEMA_VERSION: i32 = 3;
 
 /// Apply pending migrations to `conn` (idempotent).
 pub fn migrate(conn: &Connection) -> Result<(), DbError> {
@@ -17,8 +17,11 @@ pub fn migrate(conn: &Connection) -> Result<(), DbError> {
     }
     if version < 2 {
         migrate_v2(conn)?;
-        conn.pragma_update(None, "user_version", 2)?;
     }
+    if version < 3 {
+        migrate_v3(conn)?;
+    }
+    conn.pragma_update(None, "user_version", SCHEMA_VERSION)?;
     Ok(())
 }
 
@@ -32,6 +35,31 @@ fn migrate_v2(conn: &Connection) -> Result<(), DbError> {
     if !column_exists(conn, "field_map", "candidates_json")? {
         conn.execute("ALTER TABLE field_map ADD COLUMN candidates_json TEXT", [])?;
     }
+    Ok(())
+}
+
+fn migrate_v3(conn: &Connection) -> Result<(), DbError> {
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS derived_completions (
+            issue_id TEXT PRIMARY KEY NOT NULL,
+            project_key TEXT NOT NULL,
+            completed_at TEXT NOT NULL,
+            finisher_account_id TEXT,
+            story_points REAL,
+            attribution TEXT NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS idx_derived_completions_finisher_month
+            ON derived_completions (finisher_account_id, completed_at);
+         CREATE INDEX IF NOT EXISTS idx_derived_completions_project
+            ON derived_completions (project_key, completed_at);
+         CREATE TABLE IF NOT EXISTS derived_person_month (
+            month TEXT NOT NULL,
+            account_id TEXT NOT NULL,
+            completed_count INTEGER NOT NULL,
+            points REAL,
+            PRIMARY KEY (month, account_id)
+         );",
+    )?;
     Ok(())
 }
 
@@ -69,6 +97,8 @@ mod tests {
             "sync_checkpoints",
             "derived_issue_cycle",
             "derived_epic_risk",
+            "derived_completions",
+            "derived_person_month",
             "field_map",
         ] {
             let found: Option<String> = stmt.query_row([table], |r| r.get(0)).ok();
@@ -126,6 +156,30 @@ mod tests {
         let version: i32 = conn
             .pragma_query_value(None, "user_version", |row| row.get(0))
             .unwrap();
-        assert_eq!(version, 2);
+        assert_eq!(version, SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn migrate_v3_adds_performance_tables() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("v2.db");
+        let conn = Connection::open(&path).unwrap();
+        conn.execute_batch("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);")
+            .unwrap();
+        conn.pragma_update(None, "user_version", 2).unwrap();
+
+        migrate(&conn).unwrap();
+
+        let mut stmt = conn
+            .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?")
+            .unwrap();
+        for table in ["derived_completions", "derived_person_month"] {
+            let found: Option<String> = stmt.query_row([table], |r| r.get(0)).ok();
+            assert_eq!(found.as_deref(), Some(table), "missing table {table}");
+        }
+        let version: i32 = conn
+            .pragma_query_value(None, "user_version", |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 3);
     }
 }

@@ -1,0 +1,21 @@
+crates/ag_db/src/schema.sql
+  s_93508c65e06030::t_5363b6ca3c1c69 150-171
+crates/ag_db/src/migrate.rs
+  s_93508c65e06030::t_f2268baf7a6a4e 8,21-24,41-65,100-101,159-183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "635bd8397e35bc1113e1c9097f0085c60d0d3180",
+  "prompts": {},
+  "sessions": {
+    "s_93508c65e06030": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b0fc9626-0a58-47fe-9649-91f7b56c72cd",
+        "model": "default"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

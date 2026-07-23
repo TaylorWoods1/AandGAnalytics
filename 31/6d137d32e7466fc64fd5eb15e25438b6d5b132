@@ -1,0 +1,56 @@
+src-tauri/src/commands/setup.rs
+  s_0c35a24ff571fd::t_08ea6fe21ffc84 6,11-12,27-40
+  s_0c35a24ff571fd::t_d17135de63cb22 185-186,191-194,202-206
+  s_0c35a24ff571fd::t_7431124f688867 128-184,187-190,195-201,207-249,270-284,288-361
+crates/ag_db/src/schema.sql
+  s_0c35a24ff571fd::t_6f228052a9bb0b 1
+  s_0c35a24ff571fd::t_7ed1f3e2855d35 106-107
+  s_0c35a24ff571fd::t_07e4936b552632 147-148
+src-tauri/src/commands/maintenance.rs
+  s_0c35a24ff571fd::t_932974ee9d79d4 191-225
+  s_0c35a24ff571fd::t_ee9d2b0d00f87d 27-47
+  s_0c35a24ff571fd::t_79dcb5c64f98a5 83-84
+ui/src/pages/SyncPage.tsx
+  s_0c35a24ff571fd::t_9534dcfef8f6ef 6,9,12,36-38,59-68,100-109,137-152,186-209
+crates/ag_sync/src/engine.rs
+  s_0c35a24ff571fd::t_ada1ae9f6462e7 391-408,412-420,425-427,431-433,437,444-446,450-452
+src-tauri/src/commands/mod.rs
+  s_0c35a24ff571fd::t_6eb855af25e679 14-15
+  s_0c35a24ff571fd::t_d2ffdb03171156 23-25
+crates/ag_db/src/connection.rs
+  s_0c35a24ff571fd::t_1a4ac0e9cce0c1 19-21,24-45
+crates/ag_db/src/migrate.rs
+  s_0c35a24ff571fd::t_ddf362fc88d97d 8,13,16-33,38-48,51-52,71-72,77-129
+ui/src/pages/SyncPage.test.tsx
+  s_0c35a24ff571fd::t_9e23edac7c7944 22-23,30-35,85-124
+src-tauri/src/commands/metrics.rs
+  s_0c35a24ff571fd::t_8aa1af88df17f0 277,297,299-337,339-363
+  s_0c35a24ff571fd::t_695daea551609c 509-510,536-538,543
+  s_0c35a24ff571fd::t_0c53e749ae05ca 689
+  s_0c35a24ff571fd::t_f5cf9f63c7dc78 885-1001
+  s_0c35a24ff571fd::t_6a61f393f72540 3,6
+  s_0c35a24ff571fd::t_4f4955c92648f9 338
+crates/ag_risk/src/rebuild.rs
+  s_0c35a24ff571fd::t_5abbd24411ef19 386,388,391,398-402
+  s_0c35a24ff571fd::t_0d97e840aa49d5 36-37,40-42,48
+ui/src/lib/tauri.ts
+  s_0c35a24ff571fd::t_ca97d37f696198 51-72
+src-tauri/src/lib.rs
+  s_0c35a24ff571fd::t_6d7d6117e980b9 44-45
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "316d137d32e7466fc64fd5eb15e25438b6d5b132",
+  "prompts": {},
+  "sessions": {
+    "s_0c35a24ff571fd": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "cd5e29ad-77f2-4961-949b-0ab1324ad98d",
+        "model": "cursor-grok-4.5-high-fast"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}

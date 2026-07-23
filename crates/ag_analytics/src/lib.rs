@@ -1,5 +1,6 @@
 //! Flow and delivery analytics metrics for AandG Analytics.
 
+mod attribution;
 mod bottleneck;
 mod changelog;
 mod error;
@@ -9,6 +10,7 @@ mod rebuild;
 mod sprint;
 mod throughput;
 
+pub use attribution::{resolve_finisher, AssigneeChange, AttributionSource};
 pub use bottleneck::bottleneck_by_status;
 pub use changelog::{transitions_from_changelog, StatusTransition};
 pub use error::AnalyticsError;

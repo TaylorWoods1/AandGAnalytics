@@ -29,16 +29,23 @@ h1 {
   margin: 0 0 0.5rem;
 }
 
+.setup-lede {
+  max-width: 40rem;
+  color: #445566;
+  line-height: 1.45;
+}
+
 .setup-page form {
   display: grid;
   gap: 0.5rem;
   margin-top: 1.5rem;
+  max-width: 36rem;
 }
 
 .setup-page label {
   font-size: 0.9rem;
   font-weight: 600;
-  margin-top: 0.5rem;
+  margin-top: 0.75rem;
 }
 
 .setup-page input {
@@ -50,7 +57,60 @@ h1 {
   font: inherit;
 }
 
-.setup-page button,
+.setup-page .field-hint {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #5a6a7a;
+}
+
+.setup-page .field-hint code {
+  font-size: 0.8em;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.2rem;
+  background: #eef2f6;
+}
+
+.setup-page .field-hint a {
+  color: #1f4b6e;
+}
+
+.setup-page .secret-field {
+  position: relative;
+  display: grid;
+}
+
+.setup-page .secret-field input {
+  padding-right: 2.6rem;
+}
+
+.setup-page .secret-field__toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.25rem;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0.35rem;
+  border: 0;
+  border-radius: 0.3rem;
+  background: transparent;
+  color: #445566;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.setup-page .secret-field__toggle:hover,
+.setup-page .secret-field__toggle:focus-visible {
+  color: #1f4b6e;
+  background: #eef2f6;
+  outline: none;
+}
+
+.setup-page .secret-field__toggle[aria-pressed='true'] {
+  color: #1f4b6e;
+}
+
+.setup-page__submit,
 .sync-banner button {
   margin-top: 1rem;
   justify-self: start;
@@ -64,7 +124,7 @@ h1 {
   cursor: pointer;
 }
 
-.setup-page button:disabled {
+.setup-page__submit:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }

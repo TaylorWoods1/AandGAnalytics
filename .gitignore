@@ -8,3 +8,4 @@ ui/coverage/
 .DS_Store
 *.log
 .vite/
+src-tauri/gen/

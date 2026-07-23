@@ -2,6 +2,8 @@
   "name": "aandg-analytics",
   "private": true,
   "scripts": {
+    "dev": "cargo tauri dev --features desktop",
+    "build:app": "cargo tauri build --features desktop",
     "ui:dev": "npm --prefix ui run dev",
     "ui:build": "npm --prefix ui run build",
     "ui:test": "npm --prefix ui run test",

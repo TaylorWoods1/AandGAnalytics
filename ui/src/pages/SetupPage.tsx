@@ -1,14 +1,17 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SecretField from '../components/SecretField';
 import { isCredentialError } from '../lib/syncErrors';
 import { saveSetup, startFullSync, validateSetup } from '../lib/tauri';
 
+/** Fixed Auto General AU Jira Cloud site — not user-configurable. */
+export const JIRA_SITE_URL = 'https://autogeneral-au.atlassian.net';
+
 const CREDENTIAL_SETUP_COPY =
-  'Jira returned 401/403 — your site URL, email, or API token was rejected. Update the fields below and save again.';
+  'Jira returned 401/403 — your email or API token was rejected. Update the fields below and save again.';
 
 export default function SetupPage() {
   const navigate = useNavigate();
-  const [siteUrl, setSiteUrl] = useState('');
   const [email, setEmail] = useState('');
   const [jiraToken, setJiraToken] = useState('');
   const [geminiKey, setGeminiKey] = useState('');
@@ -17,12 +20,8 @@ export default function SetupPage() {
   const [busy, setBusy] = useState(false);
 
   const canContinue = useMemo(
-    () =>
-      siteUrl.trim().length > 0 &&
-      email.trim().length > 0 &&
-      jiraToken.trim().length > 0 &&
-      geminiKey.trim().length > 0,
-    [siteUrl, email, jiraToken, geminiKey],
+    () => email.trim().length > 0 && jiraToken.trim().length > 0 && geminiKey.trim().length > 0,
+    [email, jiraToken, geminiKey],
   );
 
   async function onSubmit(event: FormEvent) {
@@ -37,7 +36,7 @@ export default function SetupPage() {
     try {
       await saveSetup(
         {
-          site_url: siteUrl.trim(),
+          site_url: JIRA_SITE_URL,
           email: email.trim(),
           api_token: jiraToken,
         },
@@ -71,46 +70,70 @@ export default function SetupPage() {
   return (
     <main className="page setup-page">
       <h1>Setup</h1>
-      <p>Connect Jira and Gemini to start syncing analytics data.</p>
+      <p className="setup-lede">
+        Connect to Auto General AU Jira (
+        <code>{JIRA_SITE_URL.replace(/^https:\/\//, '')}</code>) and a Gemini API key. Credentials
+        stay on this Mac in the keychain — nothing is uploaded to a hosted backend.
+      </p>
       <form onSubmit={onSubmit}>
-        <label htmlFor="site-url">Site URL</label>
-        <input
-          id="site-url"
-          name="siteUrl"
-          type="url"
-          autoComplete="url"
-          value={siteUrl}
-          onChange={(e) => setSiteUrl(e.target.value)}
-        />
-
-        <label htmlFor="email">Email</label>
+        <label htmlFor="email">Atlassian email</label>
         <input
           id="email"
           name="email"
           type="email"
           autoComplete="email"
+          placeholder="you@company.com"
+          aria-describedby="email-hint"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
+        <p id="email-hint" className="field-hint">
+          The Atlassian account email that owns the API token (the address you use to sign in to
+          Jira).
+        </p>
 
-        <label htmlFor="jira-api-token">Jira API token</label>
-        <input
+        <SecretField
           id="jira-api-token"
+          label="Jira API token"
           name="jiraApiToken"
-          type="password"
-          autoComplete="off"
           value={jiraToken}
           onChange={(e) => setJiraToken(e.target.value)}
+          hintId="jira-token-hint"
+          showLabel="Show Jira API token"
+          hideLabel="Hide Jira API token"
+          hint={
+            <>
+              Create a token at{' '}
+              <a
+                href="https://id.atlassian.com/manage-profile/security/api-tokens"
+                target="_blank"
+                rel="noreferrer"
+              >
+                id.atlassian.com/manage-profile/security/api-tokens
+              </a>
+              . Pair it with the email above — not a password.
+            </>
+          }
         />
 
-        <label htmlFor="gemini-api-key">Gemini API key</label>
-        <input
+        <SecretField
           id="gemini-api-key"
+          label="Gemini API key"
           name="geminiApiKey"
-          type="password"
-          autoComplete="off"
           value={geminiKey}
           onChange={(e) => setGeminiKey(e.target.value)}
+          hintId="gemini-key-hint"
+          showLabel="Show Gemini API key"
+          hideLabel="Hide Gemini API key"
+          hint={
+            <>
+              Used for Ask AI. Create a key in Google AI Studio at{' '}
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
+                aistudio.google.com/apikey
+              </a>
+              .
+            </>
+          }
         />
 
         {error ? (
@@ -120,7 +143,7 @@ export default function SetupPage() {
           </div>
         ) : null}
 
-        <button type="submit" disabled={!canContinue || busy}>
+        <button type="submit" className="setup-page__submit" disabled={!canContinue || busy}>
           {busy ? 'Saving…' : 'Save and continue'}
         </button>
       </form>

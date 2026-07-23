@@ -97,7 +97,7 @@ where
 }
 
 #[cfg(feature = "desktop")]
-mod tauri_cmds {
+pub mod tauri_cmds {
     use super::*;
     use tauri::{AppHandle, Emitter, State};
 

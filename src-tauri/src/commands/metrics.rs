@@ -736,7 +736,7 @@ impl<T> OptionalExt<T> for Result<T, rusqlite::Error> {
 }
 
 #[cfg(feature = "desktop")]
-mod tauri_cmds {
+pub mod tauri_cmds {
     use super::*;
     use tauri::State;
 

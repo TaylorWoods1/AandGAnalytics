@@ -19,7 +19,7 @@ default = []
 desktop = ["dep:tauri", "dep:tauri-build"]
 
 [build-dependencies]
-tauri-build = { version = "=2.5.3", optional = true }
+tauri-build = { version = "2", optional = true , features = [] }
 
 [dependencies]
 ag_analytics = { path = "../crates/ag_analytics" }
@@ -35,12 +35,8 @@ reqwest = { version = "=0.11.27", default-features = false, features = ["json", 
 rusqlite = { version = "0.32.1", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
-tauri = { version = "=2.9.5", optional = true }
+tauri = { version = "2", optional = true , features = [] }
 tokio = { version = "=1.40.0", features = ["macros", "rt-multi-thread", "sync", "time"] }
-# Pins for Rust/Cargo 1.84.1 (avoid edition2024 / MSRV 1.85+ transitive crates)
-idna = "=0.5.0"
-url = "=2.5.2"
-indexmap = "=2.7.1"
 
 [dev-dependencies]
 tempfile = "=3.14.0"

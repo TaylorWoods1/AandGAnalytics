@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import SetupPage from './SetupPage';
+import SetupPage, { JIRA_SITE_URL } from './SetupPage';
 import * as tauri from '../lib/tauri';
 
 vi.mock('@tauri-apps/api/core', () => ({
@@ -31,16 +31,13 @@ function renderSetup() {
 }
 
 function fillForm() {
-  fireEvent.change(screen.getByLabelText(/site url/i), {
-    target: { value: 'https://example.atlassian.net' },
-  });
-  fireEvent.change(screen.getByLabelText(/email/i), {
+  fireEvent.change(screen.getByLabelText(/^atlassian email$/i), {
     target: { value: 'dev@example.com' },
   });
-  fireEvent.change(screen.getByLabelText(/jira api token/i), {
+  fireEvent.change(screen.getByLabelText(/^jira api token$/i), {
     target: { value: 'j-token' },
   });
-  fireEvent.change(screen.getByLabelText(/gemini api key/i), {
+  fireEvent.change(screen.getByLabelText(/^gemini api key$/i), {
     target: { value: 'g-key' },
   });
 }
@@ -55,6 +52,59 @@ describe('SetupPage', () => {
     expect(screen.getByRole('button', { name: /save and continue/i })).toBeDisabled();
     fillForm();
     expect(screen.getByRole('button', { name: /save and continue/i })).toBeEnabled();
+  });
+
+  it('hides site URL and hardcodes Auto General AU Jira', async () => {
+    vi.mocked(tauri.saveSetup).mockResolvedValue();
+    vi.mocked(tauri.validateSetup).mockResolvedValue({
+      jira_ok: true,
+      gemini_ok: true,
+      jira_message: 'ok',
+      gemini_message: 'ok',
+    });
+    vi.mocked(tauri.startFullSync).mockResolvedValue();
+
+    renderSetup();
+    expect(screen.queryByLabelText(/site url/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/autogeneral-au\.atlassian\.net/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Atlassian account email that owns the API token/i),
+    ).toBeInTheDocument();
+
+    fillForm();
+    fireEvent.click(screen.getByRole('button', { name: /save and continue/i }));
+
+    await waitFor(() => {
+      expect(tauri.saveSetup).toHaveBeenCalledWith(
+        {
+          site_url: JIRA_SITE_URL,
+          email: 'dev@example.com',
+          api_token: 'j-token',
+        },
+        { api_key: 'g-key' },
+      );
+    });
+  });
+
+  it('toggles jira and gemini secrets between password and text', () => {
+    renderSetup();
+    const jiraInput = screen.getByLabelText(/^jira api token$/i);
+    const geminiInput = screen.getByLabelText(/^gemini api key$/i);
+    expect(jiraInput).toHaveAttribute('type', 'password');
+    expect(geminiInput).toHaveAttribute('type', 'password');
+
+    fireEvent.click(screen.getByRole('button', { name: /show jira api token/i }));
+    expect(jiraInput).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: /hide jira api token/i })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /show gemini api key/i }));
+    expect(geminiInput).toHaveAttribute('type', 'text');
+
+    fireEvent.click(screen.getByRole('button', { name: /hide jira api token/i }));
+    expect(jiraInput).toHaveAttribute('type', 'password');
   });
 
   it('shows 401/403 credential refresh copy when Jira rejects the token', async () => {

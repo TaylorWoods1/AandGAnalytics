@@ -38,24 +38,26 @@ pub fn run() {
             ));
             Ok(())
         })
+        // Paths must point at the modules that own `#[tauri::command]` so the
+        // generated `__cmd__*` companions resolve (re-exports are not enough).
         .invoke_handler(tauri::generate_handler![
-            commands::save_setup,
-            commands::validate_setup,
-            commands::get_story_points_mapping,
-            commands::set_story_points_mapping,
-            commands::start_full_sync,
-            commands::start_incremental_sync,
-            commands::get_sync_progress,
-            commands::get_flow_metrics,
-            commands::get_sprint_metrics,
-            commands::get_epic_risk,
-            commands::get_finish_by,
-            commands::list_issues,
-            commands::preview_context_pack,
-            commands::ask_ai,
-            commands::get_suggested_prompts,
-            commands::rebuild_derived_cmd,
-            commands::full_resync,
+            commands::setup::tauri_cmds::save_setup,
+            commands::setup::tauri_cmds::validate_setup,
+            commands::setup::tauri_cmds::get_story_points_mapping,
+            commands::setup::tauri_cmds::set_story_points_mapping,
+            commands::sync::tauri_cmds::start_full_sync,
+            commands::sync::tauri_cmds::start_incremental_sync,
+            commands::sync::tauri_cmds::get_sync_progress,
+            commands::metrics::tauri_cmds::get_flow_metrics,
+            commands::metrics::tauri_cmds::get_sprint_metrics,
+            commands::metrics::tauri_cmds::get_epic_risk,
+            commands::metrics::tauri_cmds::get_finish_by,
+            commands::metrics::tauri_cmds::list_issues,
+            commands::ai::tauri_cmds::preview_context_pack,
+            commands::ai::tauri_cmds::ask_ai,
+            commands::ai::tauri_cmds::get_suggested_prompts,
+            commands::maintenance::tauri_cmds::rebuild_derived,
+            commands::maintenance::tauri_cmds::full_resync,
         ])
         .run(tauri::generate_context!())
         .expect("error while running AandG Analytics");

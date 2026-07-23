@@ -248,7 +248,7 @@ fn backfill_story_points_from_raw(conn: &Connection, field_id: &str) -> Result<(
 }
 
 #[cfg(feature = "desktop")]
-mod tauri_cmds {
+pub mod tauri_cmds {
     use super::*;
     use tauri::State;
 

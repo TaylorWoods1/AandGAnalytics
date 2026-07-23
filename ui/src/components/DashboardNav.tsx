@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 
 export type NavPage =
   | 'home'
+  | 'performance'
   | 'flow'
   | 'sprints'
   | 'epics'
@@ -12,6 +13,7 @@ export type NavPage =
 
 const LINKS: { id: NavPage; to: string; label: string }[] = [
   { id: 'home', to: '/', label: 'Home' },
+  { id: 'performance', to: '/performance', label: 'Performance' },
   { id: 'flow', to: '/flow', label: 'Flow' },
   { id: 'sprints', to: '/sprints', label: 'Sprints' },
   { id: 'epics', to: '/epics', label: 'Epics' },

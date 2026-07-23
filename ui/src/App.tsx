@@ -6,6 +6,7 @@ import EpicsPage from './pages/EpicsPage';
 import ExplorePage from './pages/ExplorePage';
 import FlowPage from './pages/FlowPage';
 import HomePage from './pages/HomePage';
+import PerformancePage from './pages/PerformancePage';
 import SetupPage from './pages/SetupPage';
 import SprintsPage from './pages/SprintsPage';
 import SyncPage from './pages/SyncPage';
@@ -53,6 +54,14 @@ export default function App() {
         element={
           <RequireCredentials>
             <SyncPage />
+          </RequireCredentials>
+        }
+      />
+      <Route
+        path="/performance"
+        element={
+          <RequireCredentials>
+            <PerformancePage />
           </RequireCredentials>
         }
       />

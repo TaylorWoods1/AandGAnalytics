@@ -219,6 +219,47 @@ export async function listIssues(filter: MetricsFilter, page: Page): Promise<Iss
   return tauriInvoke<IssuePage>('list_issues', { filter, page });
 }
 
+export type PersonVelocity = {
+  account_id: string;
+  completed_count: number;
+  points: number | null;
+};
+
+export type ProjectPerf = {
+  project_key: string;
+  open_count: number;
+  completed_in_range: number;
+  blocker_count: number;
+  blocked_secs: number;
+};
+
+export type PersonMonth = {
+  month: string;
+  account_id: string;
+  completed_count: number;
+  points: number | null;
+  rate_change: number | null;
+};
+
+export type ProjectMonth = {
+  month: string;
+  project_key: string;
+  completed_count: number;
+};
+
+export type PerformanceMetrics = {
+  by_person: PersonVelocity[];
+  by_project: ProjectPerf[];
+  person_month: PersonMonth[];
+  project_month: ProjectMonth[];
+};
+
+export async function getPerformanceMetrics(
+  filter: MetricsFilter,
+): Promise<PerformanceMetrics> {
+  return tauriInvoke<PerformanceMetrics>('get_performance_metrics', { filter });
+}
+
 export type IssueCite = {
   key: string;
   summary: string | null;

@@ -15,9 +15,11 @@ pub use maintenance::{
     reset_sync_checkpoints,
 };
 pub use metrics::{
-    get_epic_risk_inner, get_finish_by_inner, get_flow_metrics_inner, get_sprint_metrics_inner,
-    list_issues_inner, BottleneckDto, EpicRiskDto, FinishByResultDto, FlowMetricsDto, IssuePageDto,
-    IssueRowDto, MetricsFilter, Page, SprintMetricsDto, ThroughputPointDto,
+    get_epic_risk_inner, get_finish_by_inner, get_flow_metrics_inner, get_performance_metrics_inner,
+    get_sprint_metrics_inner, list_issues_inner, BottleneckDto, EpicRiskDto, FinishByResultDto,
+    FlowMetricsDto, IssuePageDto, IssueRowDto, MetricsFilter, Page, PerformanceMetricsDto,
+    PersonMonthDto, PersonVelocityDto, ProjectMonthDto, ProjectPerfDto, SprintMetricsDto,
+    ThroughputPointDto,
 };
 pub use setup::{
     get_setup_info_inner, get_story_points_mapping_inner, reset_setup_inner, save_setup_inner,
@@ -32,7 +34,8 @@ pub use ai::{ask_ai, get_suggested_prompts, preview_context_pack};
 pub use maintenance::{full_resync, rebuild_derived_cmd};
 #[cfg(feature = "desktop")]
 pub use metrics::{
-    get_epic_risk, get_finish_by, get_flow_metrics, get_sprint_metrics, list_issues,
+    get_epic_risk, get_finish_by, get_flow_metrics, get_performance_metrics, get_sprint_metrics,
+    list_issues,
 };
 #[cfg(feature = "desktop")]
 pub use setup::{

@@ -126,6 +126,47 @@ pub struct IssuePageDto {
     pub total: u64,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PersonVelocityDto {
+    pub account_id: String,
+    pub completed_count: u64,
+    pub points: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProjectPerfDto {
+    pub project_key: String,
+    pub open_count: u64,
+    pub completed_in_range: u64,
+    pub blocker_count: u64,
+    pub blocked_secs: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PersonMonthDto {
+    pub month: String,
+    pub account_id: String,
+    pub completed_count: u64,
+    pub points: Option<f64>,
+    /// `(this - prev) / prev` when previous month count &gt; 0; else null.
+    pub rate_change: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct ProjectMonthDto {
+    pub month: String,
+    pub project_key: String,
+    pub completed_count: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PerformanceMetricsDto {
+    pub by_person: Vec<PersonVelocityDto>,
+    pub by_project: Vec<ProjectPerfDto>,
+    pub person_month: Vec<PersonMonthDto>,
+    pub project_month: Vec<ProjectMonthDto>,
+}
+
 /// Flow metrics for the dashboard.
 pub fn get_flow_metrics_inner(
     state: &AppState,
@@ -177,6 +218,15 @@ pub fn list_issues_inner(
     with_db(state, |conn| {
         query_issues(conn, &filter, page.offset, limit)
     })
+}
+
+/// Performance / velocity metrics (people, projects, monthly rates).
+pub fn get_performance_metrics_inner(
+    state: &AppState,
+    filter: MetricsFilter,
+) -> Result<PerformanceMetricsDto, String> {
+    filter.validate()?;
+    with_db(state, |conn| query_performance_metrics(conn, &filter))
 }
 
 fn with_db<T>(
@@ -242,6 +292,344 @@ fn issue_filter_sql(filter: &MetricsFilter, alias: &str) -> FilterSql {
         clauses.join(" AND ")
     };
     FilterSql { where_sql, params }
+}
+
+/// Filter for completion rows: date on `completed_at`, assignee on finisher.
+fn completion_filter_sql(filter: &MetricsFilter) -> FilterSql {
+    let mut clauses = Vec::new();
+    let mut params: Vec<Box<dyn ToSql>> = Vec::new();
+
+    if let Some(keys) = &filter.project_keys {
+        if !keys.is_empty() {
+            let placeholders = vec!["?"; keys.len()].join(", ");
+            clauses.push(format!("dc.project_key IN ({placeholders})"));
+            for k in keys {
+                params.push(Box::new(k.clone()));
+            }
+        }
+    }
+    if let Some(types) = &filter.issue_types {
+        if !types.is_empty() {
+            let placeholders = vec!["?"; types.len()].join(", ");
+            clauses.push(format!("i.issue_type IN ({placeholders})"));
+            for t in types {
+                params.push(Box::new(t.clone()));
+            }
+        }
+    }
+    if let Some(ids) = &filter.assignee_ids {
+        if !ids.is_empty() {
+            let placeholders = vec!["?"; ids.len()].join(", ");
+            clauses.push(format!("dc.finisher_account_id IN ({placeholders})"));
+            for id in ids {
+                params.push(Box::new(id.clone()));
+            }
+        }
+    }
+    if let Some(from) = &filter.from {
+        clauses.push("substr(dc.completed_at, 1, 10) >= ?".into());
+        params.push(Box::new(from.clone()));
+    }
+    if let Some(to) = &filter.to {
+        clauses.push("substr(dc.completed_at, 1, 10) <= ?".into());
+        params.push(Box::new(to.clone()));
+    }
+
+    let where_sql = if clauses.is_empty() {
+        "1=1".into()
+    } else {
+        clauses.join(" AND ")
+    };
+    FilterSql { where_sql, params }
+}
+
+fn query_performance_metrics(
+    conn: &Connection,
+    filter: &MetricsFilter,
+) -> Result<PerformanceMetricsDto, String> {
+    let by_person = query_person_velocity(conn, filter)?;
+    let by_project = query_project_perf(conn, filter)?;
+    let person_month = query_person_month(conn, filter)?;
+    let project_month = query_project_month(conn, filter)?;
+    Ok(PerformanceMetricsDto {
+        by_person,
+        by_project,
+        person_month,
+        project_month,
+    })
+}
+
+fn query_person_velocity(
+    conn: &Connection,
+    filter: &MetricsFilter,
+) -> Result<Vec<PersonVelocityDto>, String> {
+    let f = completion_filter_sql(filter);
+    let sql = format!(
+        "SELECT dc.finisher_account_id, COUNT(*), SUM(dc.story_points)
+         FROM derived_completions dc
+         JOIN issues i ON i.id = dc.issue_id
+         WHERE {} AND dc.finisher_account_id IS NOT NULL
+         GROUP BY dc.finisher_account_id
+         ORDER BY COUNT(*) DESC, dc.finisher_account_id ASC",
+        f.where_sql
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(
+            params_from_iter(f.params.iter().map(|p| p.as_ref())),
+            |row| {
+                Ok(PersonVelocityDto {
+                    account_id: row.get(0)?,
+                    completed_count: row.get::<_, i64>(1)? as u64,
+                    points: row.get(2)?,
+                })
+            },
+        )
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+    Ok(rows)
+}
+
+fn query_project_perf(
+    conn: &Connection,
+    filter: &MetricsFilter,
+) -> Result<Vec<ProjectPerfDto>, String> {
+    // Completions in range by project.
+    let f = completion_filter_sql(filter);
+    let sql = format!(
+        "SELECT dc.project_key, COUNT(*)
+         FROM derived_completions dc
+         JOIN issues i ON i.id = dc.issue_id
+         WHERE {}
+         GROUP BY dc.project_key",
+        f.where_sql
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let mut completed: BTreeMap<String, u64> = BTreeMap::new();
+    {
+        let rows = stmt
+            .query_map(
+                params_from_iter(f.params.iter().map(|p| p.as_ref())),
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? as u64)),
+            )
+            .map_err(|e| e.to_string())?;
+        for row in rows {
+            let (k, c) = row.map_err(|e| e.to_string())?;
+            completed.insert(k, c);
+        }
+    }
+
+    // Open + blockers: live from issues (ignore date filter; project/type/assignee apply).
+    let open_filter = MetricsFilter {
+        project_keys: filter.project_keys.clone(),
+        from: None,
+        to: None,
+        issue_types: filter.issue_types.clone(),
+        assignee_ids: filter.assignee_ids.clone(),
+    };
+    // Open uses current assignee, not finisher.
+    let of = issue_filter_sql(&open_filter, "i");
+    let open_sql = format!(
+        "SELECT i.project_key,
+                SUM(CASE
+                      WHEN LOWER(COALESCE(i.status_category, '')) != 'done'
+                           AND (i.resolved IS NULL OR TRIM(i.resolved) = '')
+                      THEN 1 ELSE 0 END),
+                SUM(CASE
+                      WHEN LOWER(COALESCE(i.status, '')) LIKE '%block%'
+                        OR LOWER(COALESCE(i.status, '')) LIKE '%imped%'
+                      THEN 1 ELSE 0 END)
+         FROM issues i
+         WHERE {}
+         GROUP BY i.project_key",
+        of.where_sql
+    );
+    let mut open_stmt = conn.prepare(&open_sql).map_err(|e| e.to_string())?;
+    let mut open_map: BTreeMap<String, (u64, u64)> = BTreeMap::new();
+    {
+        let rows = open_stmt
+            .query_map(
+                params_from_iter(of.params.iter().map(|p| p.as_ref())),
+                |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, i64>(1)? as u64,
+                        row.get::<_, i64>(2)? as u64,
+                    ))
+                },
+            )
+            .map_err(|e| e.to_string())?;
+        for row in rows {
+            let (k, open, blockers) = row.map_err(|e| e.to_string())?;
+            open_map.insert(k, (open, blockers));
+        }
+    }
+
+    // Blocked time from derived_time_in_status for statuses matching block/imped.
+    let blocked_sql = format!(
+        "SELECT i.project_key, COALESCE(SUM(t.duration_secs), 0)
+         FROM derived_time_in_status t
+         JOIN issues i ON i.id = t.issue_id
+         WHERE ({}) AND (
+             LOWER(t.status) LIKE '%block%' OR LOWER(t.status) LIKE '%imped%'
+         )
+         GROUP BY i.project_key",
+        of.where_sql
+    );
+    let mut blocked_stmt = conn.prepare(&blocked_sql).map_err(|e| e.to_string())?;
+    let mut blocked_map: BTreeMap<String, i64> = BTreeMap::new();
+    {
+        let rows = blocked_stmt
+            .query_map(
+                params_from_iter(of.params.iter().map(|p| p.as_ref())),
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+            )
+            .map_err(|e| e.to_string())?;
+        for row in rows {
+            let (k, secs) = row.map_err(|e| e.to_string())?;
+            blocked_map.insert(k, secs);
+        }
+    }
+
+    let mut keys: BTreeMap<String, ()> = BTreeMap::new();
+    for k in completed.keys() {
+        keys.insert(k.clone(), ());
+    }
+    for k in open_map.keys() {
+        keys.insert(k.clone(), ());
+    }
+
+    let mut out = Vec::new();
+    for project_key in keys.keys() {
+        let (open_count, blocker_count) = open_map.get(project_key).copied().unwrap_or((0, 0));
+        out.push(ProjectPerfDto {
+            project_key: project_key.clone(),
+            open_count,
+            completed_in_range: completed.get(project_key).copied().unwrap_or(0),
+            blocker_count,
+            blocked_secs: blocked_map.get(project_key).copied().unwrap_or(0),
+        });
+    }
+    out.sort_by(|a, b| {
+        b.completed_in_range
+            .cmp(&a.completed_in_range)
+            .then_with(|| a.project_key.cmp(&b.project_key))
+    });
+    Ok(out)
+}
+
+fn query_person_month(
+    conn: &Connection,
+    filter: &MetricsFilter,
+) -> Result<Vec<PersonMonthDto>, String> {
+    let f = completion_filter_sql(filter);
+    let sql = format!(
+        "SELECT substr(dc.completed_at, 1, 7) AS month,
+                dc.finisher_account_id,
+                COUNT(*),
+                SUM(dc.story_points)
+         FROM derived_completions dc
+         JOIN issues i ON i.id = dc.issue_id
+         WHERE {} AND dc.finisher_account_id IS NOT NULL
+         GROUP BY month, dc.finisher_account_id
+         ORDER BY month ASC, COUNT(*) DESC",
+        f.where_sql
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows: Vec<(String, String, u64, Option<f64>)> = stmt
+        .query_map(
+            params_from_iter(f.params.iter().map(|p| p.as_ref())),
+            |row| {
+                Ok((
+                    row.get(0)?,
+                    row.get(1)?,
+                    row.get::<_, i64>(2)? as u64,
+                    row.get(3)?,
+                ))
+            },
+        )
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    // Index by (account, month) for prev-month lookup.
+    let mut by_account_month: BTreeMap<(String, String), u64> = BTreeMap::new();
+    for (month, account_id, count, _) in &rows {
+        by_account_month.insert((account_id.clone(), month.clone()), *count);
+    }
+
+    let mut out = Vec::with_capacity(rows.len());
+    for (month, account_id, completed_count, points) in rows {
+        let rate_change = prev_month_key(&month).and_then(|prev| {
+            let prev_count = *by_account_month.get(&(account_id.clone(), prev))?;
+            if prev_count == 0 {
+                None
+            } else {
+                Some((completed_count as f64 - prev_count as f64) / prev_count as f64)
+            }
+        });
+        out.push(PersonMonthDto {
+            month,
+            account_id,
+            completed_count,
+            points,
+            rate_change,
+        });
+    }
+    Ok(out)
+}
+
+fn prev_month_key(month: &str) -> Option<String> {
+    let parts: Vec<&str> = month.split('-').collect();
+    if parts.len() != 2 {
+        return None;
+    }
+    let year: i32 = parts[0].parse().ok()?;
+    let mon: u32 = parts[1].parse().ok()?;
+    if !(1..=12).contains(&mon) {
+        return None;
+    }
+    let (py, pm) = if mon == 1 {
+        (year - 1, 12)
+    } else {
+        (year, mon - 1)
+    };
+    Some(format!("{py}-{pm:02}"))
+}
+
+fn query_project_month(
+    conn: &Connection,
+    filter: &MetricsFilter,
+) -> Result<Vec<ProjectMonthDto>, String> {
+    let f = completion_filter_sql(filter);
+    let sql = format!(
+        "SELECT substr(dc.completed_at, 1, 7) AS month,
+                dc.project_key,
+                COUNT(*)
+         FROM derived_completions dc
+         JOIN issues i ON i.id = dc.issue_id
+         WHERE {}
+         GROUP BY month, dc.project_key
+         ORDER BY month ASC, COUNT(*) DESC",
+        f.where_sql
+    );
+    let mut stmt = conn.prepare(&sql).map_err(|e| e.to_string())?;
+    let rows = stmt
+        .query_map(
+            params_from_iter(f.params.iter().map(|p| p.as_ref())),
+            |row| {
+                Ok(ProjectMonthDto {
+                    month: row.get(0)?,
+                    project_key: row.get(1)?,
+                    completed_count: row.get::<_, i64>(2)? as u64,
+                })
+            },
+        )
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+    Ok(rows)
 }
 
 fn query_flow_metrics(conn: &Connection, filter: &MetricsFilter) -> Result<FlowMetricsDto, String> {
@@ -781,11 +1169,20 @@ pub mod tauri_cmds {
     ) -> Result<IssuePageDto, String> {
         list_issues_inner(&state, filter, page)
     }
+
+    #[tauri::command]
+    pub fn get_performance_metrics(
+        state: State<'_, std::sync::Arc<AppState>>,
+        filter: MetricsFilter,
+    ) -> Result<PerformanceMetricsDto, String> {
+        get_performance_metrics_inner(&state, filter)
+    }
 }
 
 #[cfg(feature = "desktop")]
 pub use tauri_cmds::{
-    get_epic_risk, get_finish_by, get_flow_metrics, get_sprint_metrics, list_issues,
+    get_epic_risk, get_finish_by, get_flow_metrics, get_performance_metrics, get_sprint_metrics,
+    list_issues,
 };
 
 #[cfg(test)]
@@ -1001,5 +1398,140 @@ mod tests {
         assert!(epics[0].drivers[0].contains("Throughput pressure"));
         assert!(epics[0].assumptions[0].contains("Weekly throughput"));
         assert_ne!(epics[0].drivers, epics[0].assumptions);
+    }
+
+    fn test_state(db_path: std::path::PathBuf) -> AppState {
+        let store = MemoryCredentialStore::default();
+        store
+            .save_jira(&JiraCredentials {
+                site_url: "https://example.atlassian.net".into(),
+                email: "a@b.c".into(),
+                api_token: "t".into(),
+            })
+            .unwrap();
+        store
+            .save_bedrock(&BedrockCredentials {
+                api_key: "g".into(),
+                region: "ap-southeast-2".into(),
+            })
+            .unwrap();
+        AppState::with_credentials(db_path, Arc::new(store))
+    }
+
+    #[test]
+    fn performance_metrics_filters_by_project_and_computes_rate_change() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("perf.db");
+        {
+            let conn = open_db(&db_path).unwrap();
+            migrate(&conn).unwrap();
+            for (id, key, project, status, cat, assignee, resolved) in [
+                (
+                    "1",
+                    "A-1",
+                    "A",
+                    "Done",
+                    "done",
+                    "bob",
+                    Some("2024-01-15T00:00:00Z"),
+                ),
+                (
+                    "2",
+                    "A-2",
+                    "A",
+                    "Done",
+                    "done",
+                    "bob",
+                    Some("2024-02-10T00:00:00Z"),
+                ),
+                (
+                    "3",
+                    "A-3",
+                    "A",
+                    "Done",
+                    "done",
+                    "bob",
+                    Some("2024-02-12T00:00:00Z"),
+                ),
+                ("4", "B-1", "B", "Done", "done", "ada", Some("2024-02-01T00:00:00Z")),
+                ("5", "A-4", "A", "Blocked", "indeterminate", "carol", None),
+            ] {
+                conn.execute(
+                    "INSERT INTO issues (
+                        id, key, project_key, summary, issue_type, status, status_category,
+                        assignee_account_id, created, updated, resolved
+                     ) VALUES (?1, ?2, ?3, 'x', 'Story', ?4, ?5, ?6,
+                               '2024-01-01T00:00:00Z', '2024-02-15T00:00:00Z', ?7)",
+                    rusqlite::params![id, key, project, status, cat, assignee, resolved],
+                )
+                .unwrap();
+            }
+            for (id, project, at, finisher, pts) in [
+                ("1", "A", "2024-01-15T00:00:00+00:00", "bob", 3.0),
+                ("2", "A", "2024-02-10T00:00:00+00:00", "bob", 2.0),
+                ("3", "A", "2024-02-12T00:00:00+00:00", "bob", 1.0),
+                ("4", "B", "2024-02-01T00:00:00+00:00", "ada", 5.0),
+            ] {
+                conn.execute(
+                    "INSERT INTO derived_completions (
+                        issue_id, project_key, completed_at, finisher_account_id, story_points, attribution
+                     ) VALUES (?1, ?2, ?3, ?4, ?5, 'current')",
+                    rusqlite::params![id, project, at, finisher, pts],
+                )
+                .unwrap();
+            }
+            conn.execute(
+                "INSERT INTO derived_time_in_status (issue_id, status, duration_secs)
+                 VALUES ('5', 'Blocked', 7200)",
+                [],
+            )
+            .unwrap();
+        }
+
+        let state = test_state(db_path);
+        let metrics = get_performance_metrics_inner(
+            &state,
+            MetricsFilter {
+                project_keys: Some(vec!["A".into()]),
+                from: Some("2024-01-01".into()),
+                to: Some("2024-02-28".into()),
+                issue_types: None,
+                assignee_ids: None,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(metrics.by_person.len(), 1);
+        assert_eq!(metrics.by_person[0].account_id, "bob");
+        assert_eq!(metrics.by_person[0].completed_count, 3);
+
+        let proj_a = metrics
+            .by_project
+            .iter()
+            .find(|p| p.project_key == "A")
+            .unwrap();
+        assert_eq!(proj_a.completed_in_range, 3);
+        assert_eq!(proj_a.open_count, 1);
+        assert_eq!(proj_a.blocker_count, 1);
+        assert_eq!(proj_a.blocked_secs, 7200);
+
+        let feb = metrics
+            .person_month
+            .iter()
+            .find(|r| r.month == "2024-02" && r.account_id == "bob")
+            .unwrap();
+        assert_eq!(feb.completed_count, 2);
+        assert!((feb.rate_change.unwrap() - 1.0).abs() < 1e-9); // 2 vs 1 in Jan
+
+        assert!(metrics
+            .project_month
+            .iter()
+            .all(|r| r.project_key == "A"));
+    }
+
+    #[test]
+    fn prev_month_key_rolls_year() {
+        assert_eq!(prev_month_key("2024-01").as_deref(), Some("2023-12"));
+        assert_eq!(prev_month_key("2024-03").as_deref(), Some("2024-02"));
     }
 }

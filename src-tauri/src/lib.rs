@@ -55,6 +55,7 @@ pub fn run() {
             commands::metrics::tauri_cmds::get_epic_risk,
             commands::metrics::tauri_cmds::get_finish_by,
             commands::metrics::tauri_cmds::list_issues,
+            commands::metrics::tauri_cmds::get_performance_metrics,
             commands::ai::tauri_cmds::preview_context_pack,
             commands::ai::tauri_cmds::ask_ai,
             commands::ai::tauri_cmds::get_suggested_prompts,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import DashboardNav from '../components/DashboardNav';
 import FilterBar from '../components/FilterBar';
 import { formatDuration } from '../lib/format';
 import {
@@ -50,16 +50,7 @@ export default function HomePage() {
     <main className="page dashboard-page">
       <header className="dashboard-header">
         <h1>Jira Analytics</h1>
-        <nav className="dashboard-nav">
-          <Link to="/" aria-current="page">
-            Home
-          </Link>
-          <Link to="/flow">Flow</Link>
-          <Link to="/sprints">Sprints</Link>
-          <Link to="/epics">Epics</Link>
-          <Link to="/explore">Explore</Link>
-          <Link to="/ask">Ask AI</Link>
-        </nav>
+        <DashboardNav current="home" />
       </header>
 
       <p>Delivery health summary from synced Jira metrics.</p>

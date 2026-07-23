@@ -47,6 +47,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/setup" element={<SetupPage />} />
+      <Route path="/settings" element={<SetupPage />} />
       <Route
         path="/sync"
         element={

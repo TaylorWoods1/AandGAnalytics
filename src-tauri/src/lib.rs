@@ -43,6 +43,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::setup::tauri_cmds::save_setup,
             commands::setup::tauri_cmds::validate_setup,
+            commands::setup::tauri_cmds::get_setup_info,
+            commands::setup::tauri_cmds::reset_setup,
             commands::setup::tauri_cmds::get_story_points_mapping,
             commands::setup::tauri_cmds::set_story_points_mapping,
             commands::sync::tauri_cmds::start_full_sync,

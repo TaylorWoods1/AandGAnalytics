@@ -18,7 +18,7 @@ vi.mock('../lib/tauri', async () => {
   };
 });
 
-function mockAskAi(answer: tauri.GeminiAnswer) {
+function mockAskAi(answer: tauri.AiAnswer) {
   vi.mocked(tauri.askAi).mockResolvedValue(answer);
 }
 

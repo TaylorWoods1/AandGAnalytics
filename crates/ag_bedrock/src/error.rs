@@ -1,10 +1,10 @@
-//! Errors for Gemini client and context pack building.
+//! Errors for Bedrock client and context pack building.
 
 use thiserror::Error;
 
-/// Failures from context pack construction or Gemini HTTP calls.
+/// Failures from context pack construction or Bedrock HTTP calls.
 #[derive(Debug, Error)]
-pub enum GeminiError {
+pub enum BedrockError {
     #[error("database error: {0}")]
     Db(String),
     #[error("http error: {0}")]
@@ -19,7 +19,7 @@ pub enum GeminiError {
     Other(String),
 }
 
-impl From<rusqlite::Error> for GeminiError {
+impl From<rusqlite::Error> for BedrockError {
     fn from(value: rusqlite::Error) -> Self {
         Self::Db(value.to_string())
     }

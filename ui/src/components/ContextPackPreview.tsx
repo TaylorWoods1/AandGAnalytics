@@ -6,7 +6,7 @@ type Props = {
   error?: string | null;
 };
 
-/** Collapsible preview of the context pack that leaves the machine for Gemini. */
+/** Collapsible preview of the context pack that leaves the machine for Bedrock. */
 export default function ContextPackPreview({ pack, loading = false, error = null }: Props) {
   return (
     <details className="context-pack-preview">

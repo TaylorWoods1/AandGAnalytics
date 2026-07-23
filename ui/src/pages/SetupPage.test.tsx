@@ -19,52 +19,118 @@ vi.mock('../lib/tauri', async () => {
     saveSetup: vi.fn(),
     validateSetup: vi.fn(),
     startFullSync: vi.fn(),
+    getSetupInfo: vi.fn(),
+    resetSetup: vi.fn(),
   };
 });
 
-function renderSetup() {
+function renderSetup(path = '/setup') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <SetupPage />
     </MemoryRouter>,
   );
 }
 
-function fillForm() {
+function fillJiraFields() {
   fireEvent.change(screen.getByLabelText(/^atlassian email$/i), {
     target: { value: 'dev@example.com' },
   });
   fireEvent.change(screen.getByLabelText(/^jira api token$/i), {
     target: { value: 'j-token' },
   });
-  fireEvent.change(screen.getByLabelText(/^gemini api key$/i), {
-    target: { value: 'g-key' },
+}
+
+function fillForm() {
+  fillJiraFields();
+  fireEvent.change(screen.getByLabelText(/^aws bedrock api key \(optional\)$/i), {
+    target: { value: 'b-key' },
   });
 }
+
+const emptyInfo = {
+  jira_configured: false,
+  bedrock_configured: false,
+  email: null,
+  site_url: null,
+  bedrock_region: null,
+};
 
 describe('SetupPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(tauri.getSetupInfo).mockResolvedValue(emptyInfo);
   });
 
-  it('disables continue until jira and gemini fields are filled', () => {
+  it('disables continue until jira fields are filled; bedrock is optional', async () => {
     renderSetup();
+    expect(await screen.findByRole('heading', { name: /^setup$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /save and continue/i })).toBeDisabled();
-    fillForm();
+    fillJiraFields();
     expect(screen.getByRole('button', { name: /save and continue/i })).toBeEnabled();
+  });
+
+  it('saves and continues without a bedrock key', async () => {
+    vi.mocked(tauri.saveSetup).mockResolvedValue();
+    vi.mocked(tauri.validateSetup).mockResolvedValue({
+      jira_ok: true,
+      bedrock_ok: true,
+      jira_message: 'ok',
+      bedrock_message: 'not configured (optional — Ask AI disabled)',
+    });
+    vi.mocked(tauri.startFullSync).mockResolvedValue();
+
+    renderSetup();
+    await screen.findByRole('heading', { name: /^setup$/i });
+    fillJiraFields();
+    fireEvent.click(screen.getByRole('button', { name: /save and continue/i }));
+
+    await waitFor(() => {
+      expect(tauri.saveSetup).toHaveBeenCalledWith(
+        {
+          site_url: JIRA_SITE_URL,
+          email: 'dev@example.com',
+          api_token: 'j-token',
+        },
+        { api_key: '', region: 'ap-southeast-2' },
+      );
+      expect(tauri.startFullSync).toHaveBeenCalled();
+    });
+  });
+
+  it('shows settings mode with clear action when already configured', async () => {
+    vi.mocked(tauri.getSetupInfo).mockResolvedValue({
+      jira_configured: true,
+      bedrock_configured: false,
+      email: 'dev@example.com',
+      site_url: JIRA_SITE_URL,
+      bedrock_region: null,
+    });
+
+    renderSetup('/settings');
+    expect(await screen.findByRole('heading', { name: /^settings$/i })).toBeInTheDocument();
+    expect(screen.getByText(/currently signed in as/i)).toHaveTextContent('dev@example.com');
+    expect(screen.getByRole('link', { name: /^settings$/i })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
+    expect(
+      screen.getByRole('button', { name: /clear credentials & local data/i }),
+    ).toBeInTheDocument();
   });
 
   it('hides site URL and hardcodes Auto General AU Jira', async () => {
     vi.mocked(tauri.saveSetup).mockResolvedValue();
     vi.mocked(tauri.validateSetup).mockResolvedValue({
       jira_ok: true,
-      gemini_ok: true,
+      bedrock_ok: true,
       jira_message: 'ok',
-      gemini_message: 'ok',
+      bedrock_message: 'ok',
     });
     vi.mocked(tauri.startFullSync).mockResolvedValue();
 
     renderSetup();
+    await screen.findByRole('heading', { name: /^setup$/i });
     expect(screen.queryByLabelText(/site url/i)).not.toBeInTheDocument();
     expect(screen.getByText(/autogeneral-au\.atlassian\.net/i)).toBeInTheDocument();
     expect(
@@ -81,17 +147,18 @@ describe('SetupPage', () => {
           email: 'dev@example.com',
           api_token: 'j-token',
         },
-        { api_key: 'g-key' },
+        { api_key: 'b-key', region: 'ap-southeast-2' },
       );
     });
   });
 
-  it('toggles jira and gemini secrets between password and text', () => {
+  it('toggles jira and bedrock secrets between password and text', async () => {
     renderSetup();
+    await screen.findByRole('heading', { name: /^setup$/i });
     const jiraInput = screen.getByLabelText(/^jira api token$/i);
-    const geminiInput = screen.getByLabelText(/^gemini api key$/i);
+    const bedrockInput = screen.getByLabelText(/^aws bedrock api key \(optional\)$/i);
     expect(jiraInput).toHaveAttribute('type', 'password');
-    expect(geminiInput).toHaveAttribute('type', 'password');
+    expect(bedrockInput).toHaveAttribute('type', 'password');
 
     fireEvent.click(screen.getByRole('button', { name: /show jira api token/i }));
     expect(jiraInput).toHaveAttribute('type', 'text');
@@ -100,8 +167,8 @@ describe('SetupPage', () => {
       'true',
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /show gemini api key/i }));
-    expect(geminiInput).toHaveAttribute('type', 'text');
+    fireEvent.click(screen.getByRole('button', { name: /show bedrock api key/i }));
+    expect(bedrockInput).toHaveAttribute('type', 'text');
 
     fireEvent.click(screen.getByRole('button', { name: /hide jira api token/i }));
     expect(jiraInput).toHaveAttribute('type', 'password');
@@ -111,12 +178,13 @@ describe('SetupPage', () => {
     vi.mocked(tauri.saveSetup).mockResolvedValue();
     vi.mocked(tauri.validateSetup).mockResolvedValue({
       jira_ok: false,
-      gemini_ok: true,
+      bedrock_ok: true,
       jira_message: 'unauthorized (HTTP 401): update your Jira API token',
-      gemini_message: 'ok',
+      bedrock_message: 'ok',
     });
 
     renderSetup();
+    await screen.findByRole('heading', { name: /^setup$/i });
     fillForm();
     fireEvent.click(screen.getByRole('button', { name: /save and continue/i }));
 

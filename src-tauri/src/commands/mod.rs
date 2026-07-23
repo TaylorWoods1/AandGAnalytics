@@ -7,8 +7,8 @@ pub mod setup;
 pub mod sync;
 
 pub use ai::{
-    ask_ai_inner, get_suggested_prompts_inner, preview_context_pack_inner, ContextPackDto,
-    GeminiAnswerDto, SuggestedPromptsDto,
+    ask_ai_inner, get_suggested_prompts_inner, preview_context_pack_inner, AiAnswerDto,
+    ContextPackDto, SuggestedPromptsDto,
 };
 pub use maintenance::{
     clear_raw_issue_data, full_resync_inner, rebuild_derived, rebuild_derived_inner,
@@ -20,9 +20,9 @@ pub use metrics::{
     IssueRowDto, MetricsFilter, Page, SprintMetricsDto, ThroughputPointDto,
 };
 pub use setup::{
-    get_story_points_mapping_inner, save_setup_inner, set_story_points_mapping_inner,
-    validate_setup_inner, FieldCandidateDto, GeminiCredentialsDto, JiraCredentialsDto, SetupStatus,
-    StoryPointsMappingDto,
+    get_setup_info_inner, get_story_points_mapping_inner, reset_setup_inner, save_setup_inner,
+    set_story_points_mapping_inner, validate_setup_inner, BedrockCredentialsDto, FieldCandidateDto,
+    JiraCredentialsDto, SetupInfoDto, SetupStatus, StoryPointsMappingDto,
 };
 pub use sync::{get_sync_progress_inner, start_full_sync_inner, start_incremental_sync_inner};
 
@@ -35,6 +35,9 @@ pub use metrics::{
     get_epic_risk, get_finish_by, get_flow_metrics, get_sprint_metrics, list_issues,
 };
 #[cfg(feature = "desktop")]
-pub use setup::{get_story_points_mapping, save_setup, set_story_points_mapping, validate_setup};
+pub use setup::{
+    get_setup_info, get_story_points_mapping, reset_setup, save_setup, set_story_points_mapping,
+    validate_setup,
+};
 #[cfg(feature = "desktop")]
 pub use sync::{get_sync_progress, start_full_sync, start_incremental_sync};

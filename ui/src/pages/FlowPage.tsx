@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import DashboardNav from '../components/DashboardNav';
 import FilterBar from '../components/FilterBar';
 import MetricChart from '../components/MetricChart';
 import { formatDuration, formatPercent } from '../lib/format';
@@ -39,16 +39,7 @@ export default function FlowPage() {
     <main className="page dashboard-page">
       <header className="dashboard-header">
         <h1>Flow</h1>
-        <nav className="dashboard-nav">
-          <Link to="/">Home</Link>
-          <Link to="/flow" aria-current="page">
-            Flow
-          </Link>
-          <Link to="/sprints">Sprints</Link>
-          <Link to="/epics">Epics</Link>
-          <Link to="/explore">Explore</Link>
-          <Link to="/ask">Ask AI</Link>
-        </nav>
+        <DashboardNav current="flow" />
       </header>
 
       <FilterBar value={filter} onChange={setFilter} />

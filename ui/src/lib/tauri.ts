@@ -7,15 +7,16 @@ export type JiraCredentials = {
   api_token: string;
 };
 
-export type GeminiCredentials = {
+export type BedrockCredentials = {
   api_key: string;
+  region?: string;
 };
 
 export type SetupStatus = {
   jira_ok: boolean;
-  gemini_ok: boolean;
+  bedrock_ok: boolean;
   jira_message: string;
-  gemini_message: string;
+  bedrock_message: string;
 };
 
 export type SyncProgress = {
@@ -26,12 +27,32 @@ export type SyncProgress = {
   message: string;
 };
 
-export async function saveSetup(jira: JiraCredentials, gemini: GeminiCredentials): Promise<void> {
-  await tauriInvoke('save_setup', { jira, gemini });
+export async function saveSetup(
+  jira: JiraCredentials,
+  bedrock: BedrockCredentials,
+): Promise<void> {
+  await tauriInvoke('save_setup', { jira, bedrock });
 }
 
 export async function validateSetup(): Promise<SetupStatus> {
   return tauriInvoke<SetupStatus>('validate_setup');
+}
+
+export type SetupInfo = {
+  jira_configured: boolean;
+  bedrock_configured: boolean;
+  email: string | null;
+  site_url: string | null;
+  bedrock_region: string | null;
+};
+
+export async function getSetupInfo(): Promise<SetupInfo> {
+  return tauriInvoke<SetupInfo>('get_setup_info');
+}
+
+/** Wipe keychain credentials and local SQLite DB for a fresh onboard. */
+export async function resetSetup(): Promise<void> {
+  await tauriInvoke('reset_setup');
 }
 
 export async function startFullSync(): Promise<void> {
@@ -74,11 +95,11 @@ export async function getSyncProgress(): Promise<SyncProgress> {
   return tauriInvoke<SyncProgress>('get_sync_progress');
 }
 
-/** True when credentials appear configured (validate_setup succeeds). */
+/** True when Jira credentials are stored locally. */
 export async function hasCredentials(): Promise<boolean> {
   try {
-    await validateSetup();
-    return true;
+    const info = await getSetupInfo();
+    return info.jira_configured;
   } catch {
     return false;
   }
@@ -213,7 +234,7 @@ export type ContextPack = {
   approx_tokens: number;
 };
 
-export type GeminiAnswer = {
+export type AiAnswer = {
   text: string;
   citations: string[];
 };
@@ -222,8 +243,8 @@ export async function previewContextPack(filter: MetricsFilter): Promise<Context
   return tauriInvoke<ContextPack>('preview_context_pack', { filter });
 }
 
-export async function askAi(filter: MetricsFilter, question: string): Promise<GeminiAnswer> {
-  return tauriInvoke<GeminiAnswer>('ask_ai', { filter, question });
+export async function askAi(filter: MetricsFilter, question: string): Promise<AiAnswer> {
+  return tauriInvoke<AiAnswer>('ask_ai', { filter, question });
 }
 
 export async function getSuggestedPrompts(): Promise<string[]> {

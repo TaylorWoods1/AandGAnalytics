@@ -7,9 +7,9 @@ name = "aandg-analytics-tauri"
 version = "0.1.0"
 dependencies = [
  "ag_analytics",
+ "ag_bedrock",
  "ag_credentials",
  "ag_db",
- "ag_gemini",
  "ag_jira",
  "ag_risk",
  "ag_sync",
@@ -65,26 +65,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ag_credentials"
-version = "0.1.0"
-dependencies = [
- "keyring",
- "serde",
- "serde_json",
- "thiserror 2.0.19",
-]
-
-[[package]]
-name = "ag_db"
-version = "0.1.0"
-dependencies = [
- "rusqlite",
- "tempfile",
- "thiserror 2.0.19",
-]
-
-[[package]]
-name = "ag_gemini"
+name = "ag_bedrock"
 version = "0.1.0"
 dependencies = [
  "ag_credentials",
@@ -102,6 +83,25 @@ dependencies = [
  "thiserror 2.0.19",
  "tokio",
  "url",
+]
+
+[[package]]
+name = "ag_credentials"
+version = "0.1.0"
+dependencies = [
+ "keyring",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.19",
+]
+
+[[package]]
+name = "ag_db"
+version = "0.1.0"
+dependencies = [
+ "rusqlite",
+ "tempfile",
+ "thiserror 2.0.19",
 ]
 
 [[package]]

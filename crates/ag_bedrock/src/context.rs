@@ -3,7 +3,7 @@
 use rusqlite::{params_from_iter, Connection, ToSql};
 use serde::{Deserialize, Serialize};
 
-use crate::error::GeminiError;
+use crate::error::BedrockError;
 
 /// Shared analytics filter (same shape as Tauri `MetricsFilter`).
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -25,7 +25,7 @@ pub struct IssueCite {
     pub cycle_secs: Option<i64>,
 }
 
-/// Curated pack sent to Gemini (aggregates + top supporting issues).
+/// Curated pack sent to Bedrock (aggregates + top supporting issues).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct ContextPack {
     pub filter_summary: String,
@@ -47,7 +47,7 @@ pub fn approx_token_count(pack: &ContextPack) -> usize {
     chars.div_ceil(4).max(1)
 }
 
-/// Render the pack as the user-facing context block for Gemini.
+/// Render the pack as the user-facing context block for Bedrock.
 pub fn format_pack_for_prompt(pack: &ContextPack) -> String {
     let mut out = String::new();
     out.push_str("## Active filters\n");
@@ -79,9 +79,9 @@ pub fn build_context_pack(
     conn: &Connection,
     filter: &MetricsFilter,
     token_budget: usize,
-) -> Result<ContextPack, GeminiError> {
+) -> Result<ContextPack, BedrockError> {
     if token_budget == 0 {
-        return Err(GeminiError::Other("token_budget must be > 0".into()));
+        return Err(BedrockError::Other("token_budget must be > 0".into()));
     }
 
     let filter_summary = summarize_filter(filter);
@@ -143,7 +143,7 @@ fn summarize_filter(filter: &MetricsFilter) -> String {
 fn build_metrics_markdown(
     conn: &Connection,
     filter: &MetricsFilter,
-) -> Result<String, GeminiError> {
+) -> Result<String, BedrockError> {
     let mut md = String::new();
 
     let f = issue_filter_sql(filter, "i");
@@ -216,7 +216,7 @@ fn load_supporting_issues(
     conn: &Connection,
     filter: &MetricsFilter,
     limit: usize,
-) -> Result<Vec<IssueCite>, GeminiError> {
+) -> Result<Vec<IssueCite>, BedrockError> {
     let f = issue_filter_sql(filter, "i");
     let sql = format!(
         "SELECT i.key, i.summary, i.status, i.project_key, c.cycle_secs
@@ -247,7 +247,7 @@ fn load_supporting_issues(
 fn query_bottlenecks(
     conn: &Connection,
     filter: &MetricsFilter,
-) -> Result<Vec<(String, i64)>, GeminiError> {
+) -> Result<Vec<(String, i64)>, BedrockError> {
     let f = issue_filter_sql(filter, "i");
     let sql = format!(
         "SELECT t.status, SUM(t.duration_secs) as total
@@ -269,7 +269,7 @@ fn query_bottlenecks(
     Ok(rows)
 }
 
-fn query_throughput_total(conn: &Connection, filter: &MetricsFilter) -> Result<i64, GeminiError> {
+fn query_throughput_total(conn: &Connection, filter: &MetricsFilter) -> Result<i64, BedrockError> {
     let mut clauses = Vec::new();
     let mut params: Vec<Box<dyn ToSql>> = Vec::new();
     if let Some(keys) = &filter.project_keys {
@@ -309,7 +309,7 @@ fn query_top_epics(
     conn: &Connection,
     filter: &MetricsFilter,
     limit: usize,
-) -> Result<Vec<(String, f64, Option<f64>)>, GeminiError> {
+) -> Result<Vec<(String, f64, Option<f64>)>, BedrockError> {
     let mut sql = String::from(
         "SELECT r.epic_key, COALESCE(r.risk_score, 0), r.finish_by_probability
          FROM derived_epic_risk r
@@ -347,7 +347,7 @@ fn query_top_epics(
     Ok(rows)
 }
 
-fn meta_u64(conn: &Connection, key: &str) -> Result<u64, GeminiError> {
+fn meta_u64(conn: &Connection, key: &str) -> Result<u64, BedrockError> {
     let mut stmt = conn.prepare("SELECT value FROM meta WHERE key = ?1")?;
     let value: Option<String> = match stmt.query_row([key], |row| row.get(0)) {
         Ok(v) => Some(v),

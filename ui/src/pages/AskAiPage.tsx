@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import DashboardNav from '../components/DashboardNav';
 import ContextPackPreview from '../components/ContextPackPreview';
 import FilterBar from '../components/FilterBar';
 import {
@@ -8,7 +8,7 @@ import {
   getSuggestedPrompts,
   previewContextPack,
   type ContextPack,
-  type GeminiAnswer,
+  type AiAnswer,
   type MetricsFilter,
 } from '../lib/tauri';
 
@@ -19,7 +19,7 @@ export default function AskAiPage() {
   const [pack, setPack] = useState<ContextPack | null>(null);
   const [packLoading, setPackLoading] = useState(false);
   const [packError, setPackError] = useState<string | null>(null);
-  const [answer, setAnswer] = useState<GeminiAnswer | null>(null);
+  const [answer, setAnswer] = useState<AiAnswer | null>(null);
   const [asking, setAsking] = useState(false);
   const [askError, setAskError] = useState<string | null>(null);
 
@@ -82,19 +82,10 @@ export default function AskAiPage() {
     <main className="page dashboard-page">
       <header className="dashboard-header">
         <h1>Ask AI</h1>
-        <nav className="dashboard-nav">
-          <Link to="/">Home</Link>
-          <Link to="/flow">Flow</Link>
-          <Link to="/sprints">Sprints</Link>
-          <Link to="/epics">Epics</Link>
-          <Link to="/explore">Explore</Link>
-          <Link to="/ask" aria-current="page">
-            Ask AI
-          </Link>
-        </nav>
+        <DashboardNav current="ask" />
       </header>
 
-      <p>Ask questions over a local context pack. Dashboards keep working if Gemini fails.</p>
+      <p>Ask questions over a local context pack. Dashboards keep working if Bedrock fails.</p>
 
       <FilterBar value={filter} onChange={setFilter} />
 
@@ -141,7 +132,7 @@ export default function AskAiPage() {
         </p>
       ) : null}
 
-      {asking ? <p>Asking Gemini…</p> : null}
+      {asking ? <p>Asking Bedrock…</p> : null}
 
       {answer ? (
         <section className="ai-answer" aria-label="AI answer">

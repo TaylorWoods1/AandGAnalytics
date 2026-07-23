@@ -792,7 +792,7 @@ pub use tauri_cmds::{
 mod tests {
     use super::*;
     use ag_credentials::{
-        CredentialStore, GeminiCredentials, JiraCredentials, MemoryCredentialStore,
+        CredentialStore, BedrockCredentials, JiraCredentials, MemoryCredentialStore,
     };
     use std::sync::Arc;
     use tempfile::tempdir;
@@ -858,8 +858,9 @@ mod tests {
             })
             .unwrap();
         store
-            .save_gemini(&GeminiCredentials {
+            .save_bedrock(&BedrockCredentials {
                 api_key: "g".into(),
+                region: "ap-southeast-2".into(),
             })
             .unwrap();
         let state = AppState::with_credentials(db_path, Arc::new(store));
@@ -921,8 +922,9 @@ mod tests {
             })
             .unwrap();
         store
-            .save_gemini(&GeminiCredentials {
+            .save_bedrock(&BedrockCredentials {
                 api_key: "g".into(),
+                region: "ap-southeast-2".into(),
             })
             .unwrap();
         let state = AppState::with_credentials(db_path, Arc::new(store));
@@ -978,8 +980,9 @@ mod tests {
             })
             .unwrap();
         store
-            .save_gemini(&GeminiCredentials {
+            .save_bedrock(&BedrockCredentials {
                 api_key: "g".into(),
+                region: "ap-southeast-2".into(),
             })
             .unwrap();
         let state = AppState::with_credentials(db_path, Arc::new(store));

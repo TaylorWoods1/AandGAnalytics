@@ -14,7 +14,10 @@ use thiserror::Error;
 
 const SERVICE: &str = "com.aandganalytics.desktop";
 const JIRA_ACCOUNT: &str = "jira";
-const GEMINI_ACCOUNT: &str = "gemini";
+const BEDROCK_ACCOUNT: &str = "bedrock";
+
+/// Default AWS region for Bedrock Runtime when the user does not specify one.
+pub const DEFAULT_BEDROCK_REGION: &str = "ap-southeast-2";
 
 /// Jira site + personal API token credentials.
 ///
@@ -36,18 +39,38 @@ impl fmt::Debug for JiraCredentials {
     }
 }
 
-/// Gemini API key credentials.
+/// Amazon Bedrock API key credentials (bearer token auth).
 ///
 /// Never log `api_key`. Prefer [`fmt::Debug`] which redacts it.
 #[derive(Clone, Serialize, Deserialize)]
-pub struct GeminiCredentials {
+pub struct BedrockCredentials {
     pub api_key: String,
+    /// AWS region for the Bedrock Runtime endpoint (e.g. `ap-southeast-2`).
+    #[serde(default = "default_bedrock_region")]
+    pub region: String,
 }
 
-impl fmt::Debug for GeminiCredentials {
+fn default_bedrock_region() -> String {
+    DEFAULT_BEDROCK_REGION.to_string()
+}
+
+impl BedrockCredentials {
+    /// Normalize empty region to the AU default.
+    pub fn normalized(mut self) -> Self {
+        if self.region.trim().is_empty() {
+            self.region = DEFAULT_BEDROCK_REGION.to_string();
+        } else {
+            self.region = self.region.trim().to_string();
+        }
+        self
+    }
+}
+
+impl fmt::Debug for BedrockCredentials {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("GeminiCredentials")
+        f.debug_struct("BedrockCredentials")
             .field("api_key", &"[REDACTED]")
+            .field("region", &self.region)
             .finish()
     }
 }
@@ -72,12 +95,12 @@ impl From<keyring::Error> for CredentialError {
     }
 }
 
-/// Persist and load Jira / Gemini credentials.
+/// Persist and load Jira / Bedrock credentials.
 pub trait CredentialStore: Send + Sync {
     fn save_jira(&self, creds: &JiraCredentials) -> Result<(), CredentialError>;
     fn load_jira(&self) -> Result<Option<JiraCredentials>, CredentialError>;
-    fn save_gemini(&self, creds: &GeminiCredentials) -> Result<(), CredentialError>;
-    fn load_gemini(&self) -> Result<Option<GeminiCredentials>, CredentialError>;
+    fn save_bedrock(&self, creds: &BedrockCredentials) -> Result<(), CredentialError>;
+    fn load_bedrock(&self) -> Result<Option<BedrockCredentials>, CredentialError>;
     fn clear_all(&self) -> Result<(), CredentialError>;
 }
 
@@ -85,7 +108,7 @@ pub trait CredentialStore: Send + Sync {
 #[derive(Default)]
 pub struct MemoryCredentialStore {
     jira: Mutex<Option<JiraCredentials>>,
-    gemini: Mutex<Option<GeminiCredentials>>,
+    bedrock: Mutex<Option<BedrockCredentials>>,
 }
 
 impl CredentialStore for MemoryCredentialStore {
@@ -106,18 +129,18 @@ impl CredentialStore for MemoryCredentialStore {
         Ok(guard.clone())
     }
 
-    fn save_gemini(&self, creds: &GeminiCredentials) -> Result<(), CredentialError> {
+    fn save_bedrock(&self, creds: &BedrockCredentials) -> Result<(), CredentialError> {
         let mut guard = self
-            .gemini
+            .bedrock
             .lock()
             .map_err(|_| CredentialError::LockPoisoned)?;
-        *guard = Some(creds.clone());
+        *guard = Some(creds.clone().normalized());
         Ok(())
     }
 
-    fn load_gemini(&self) -> Result<Option<GeminiCredentials>, CredentialError> {
+    fn load_bedrock(&self) -> Result<Option<BedrockCredentials>, CredentialError> {
         let guard = self
-            .gemini
+            .bedrock
             .lock()
             .map_err(|_| CredentialError::LockPoisoned)?;
         Ok(guard.clone())
@@ -133,7 +156,7 @@ impl CredentialStore for MemoryCredentialStore {
         }
         {
             let mut guard = self
-                .gemini
+                .bedrock
                 .lock()
                 .map_err(|_| CredentialError::LockPoisoned)?;
             *guard = None;
@@ -197,24 +220,26 @@ impl CredentialStore for KeychainCredentialStore {
         }
     }
 
-    fn save_gemini(&self, creds: &GeminiCredentials) -> Result<(), CredentialError> {
-        let payload = serde_json::to_string(creds).map_err(|_| CredentialError::Corrupt)?;
-        Self::set_secret(GEMINI_ACCOUNT, &payload)
+    fn save_bedrock(&self, creds: &BedrockCredentials) -> Result<(), CredentialError> {
+        let payload =
+            serde_json::to_string(&creds.clone().normalized()).map_err(|_| CredentialError::Corrupt)?;
+        Self::set_secret(BEDROCK_ACCOUNT, &payload)
     }
 
-    fn load_gemini(&self) -> Result<Option<GeminiCredentials>, CredentialError> {
-        match Self::get_secret(GEMINI_ACCOUNT)? {
+    fn load_bedrock(&self) -> Result<Option<BedrockCredentials>, CredentialError> {
+        match Self::get_secret(BEDROCK_ACCOUNT)? {
             None => Ok(None),
             Some(payload) => {
-                let creds = serde_json::from_str(&payload).map_err(|_| CredentialError::Corrupt)?;
-                Ok(Some(creds))
+                let creds: BedrockCredentials =
+                    serde_json::from_str(&payload).map_err(|_| CredentialError::Corrupt)?;
+                Ok(Some(creds.normalized()))
             }
         }
     }
 
     fn clear_all(&self) -> Result<(), CredentialError> {
         Self::delete_secret(JIRA_ACCOUNT)?;
-        Self::delete_secret(GEMINI_ACCOUNT)?;
+        Self::delete_secret(BEDROCK_ACCOUNT)?;
         Ok(())
     }
 }
@@ -224,7 +249,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn memory_store_round_trips_jira_and_gemini() {
+    fn memory_store_round_trips_jira_and_bedrock() {
         let store = MemoryCredentialStore::default();
         assert!(store.load_jira().unwrap().is_none());
 
@@ -236,20 +261,21 @@ mod tests {
             })
             .unwrap();
         store
-            .save_gemini(&GeminiCredentials {
-                api_key: "secret-gemini".into(),
+            .save_bedrock(&BedrockCredentials {
+                api_key: "secret-bedrock".into(),
+                region: "".into(),
             })
             .unwrap();
 
         let jira = store.load_jira().unwrap().unwrap();
         assert_eq!(jira.api_token, "secret-jira");
-        assert_eq!(
-            store.load_gemini().unwrap().unwrap().api_key,
-            "secret-gemini"
-        );
+        let bedrock = store.load_bedrock().unwrap().unwrap();
+        assert_eq!(bedrock.api_key, "secret-bedrock");
+        assert_eq!(bedrock.region, DEFAULT_BEDROCK_REGION);
 
         store.clear_all().unwrap();
         assert!(store.load_jira().unwrap().is_none());
+        assert!(store.load_bedrock().unwrap().is_none());
     }
 
     #[test]
@@ -259,14 +285,16 @@ mod tests {
             email: "dev@example.com".into(),
             api_token: "secret-jira".into(),
         };
-        let gemini = GeminiCredentials {
-            api_key: "secret-gemini".into(),
+        let bedrock = BedrockCredentials {
+            api_key: "secret-bedrock".into(),
+            region: "ap-southeast-2".into(),
         };
         let jira_dbg = format!("{jira:?}");
-        let gemini_dbg = format!("{gemini:?}");
+        let bedrock_dbg = format!("{bedrock:?}");
         assert!(!jira_dbg.contains("secret-jira"));
         assert!(jira_dbg.contains("[REDACTED]"));
-        assert!(!gemini_dbg.contains("secret-gemini"));
-        assert!(gemini_dbg.contains("[REDACTED]"));
+        assert!(!bedrock_dbg.contains("secret-bedrock"));
+        assert!(bedrock_dbg.contains("[REDACTED]"));
+        assert!(bedrock_dbg.contains("ap-southeast-2"));
     }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import DashboardNav from '../components/DashboardNav';
 import FilterBar from '../components/FilterBar';
 import { formatDuration } from '../lib/format';
 import { emptyMetricsFilter, listIssues, type IssuePage, type MetricsFilter } from '../lib/tauri';
@@ -48,16 +48,7 @@ export default function ExplorePage() {
     <main className="page dashboard-page">
       <header className="dashboard-header">
         <h1>Explore</h1>
-        <nav className="dashboard-nav">
-          <Link to="/">Home</Link>
-          <Link to="/flow">Flow</Link>
-          <Link to="/sprints">Sprints</Link>
-          <Link to="/epics">Epics</Link>
-          <Link to="/explore" aria-current="page">
-            Explore
-          </Link>
-          <Link to="/ask">Ask AI</Link>
-        </nav>
+        <DashboardNav current="explore" />
       </header>
 
       <FilterBar

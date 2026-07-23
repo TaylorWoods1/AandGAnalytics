@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import DashboardNav from '../components/DashboardNav';
 import SyncBanner from '../components/SyncBanner';
 import {
   fullResync,
@@ -152,7 +153,10 @@ export default function SyncPage() {
 
   return (
     <main className="page sync-page">
-      <h1>Sync</h1>
+      <header className="dashboard-header">
+        <h1>Sync</h1>
+        <DashboardNav current="sync" />
+      </header>
       <SyncBanner progress={progress} error={error} onRetry={error ? onRetry : undefined} />
 
       {!error ? (

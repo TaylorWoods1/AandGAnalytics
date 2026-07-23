@@ -25,7 +25,7 @@ tauri-build = { version = "2", optional = true , features = [] }
 ag_analytics = { path = "../crates/ag_analytics" }
 ag_credentials = { path = "../crates/ag_credentials" }
 ag_db = { path = "../crates/ag_db" }
-ag_gemini = { path = "../crates/ag_gemini" }
+ag_bedrock = { path = "../crates/ag_bedrock" }
 ag_jira = { path = "../crates/ag_jira" }
 ag_risk = { path = "../crates/ag_risk" }
 ag_sync = { path = "../crates/ag_sync" }

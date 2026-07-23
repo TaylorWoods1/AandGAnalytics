@@ -1,6 +1,6 @@
-//! Setup commands: save and validate Jira + Gemini credentials.
+//! Setup commands: save and validate Jira + Bedrock credentials.
 
-use ag_credentials::{GeminiCredentials, JiraCredentials};
+use ag_credentials::{BedrockCredentials, JiraCredentials};
 use ag_db::{migrate, open_db};
 use ag_jira::JiraClient;
 use rusqlite::{params, Connection};
@@ -12,16 +12,16 @@ const FIELD_STORY_POINTS: &str = "story_points";
 
 /// IPC DTO for Jira credentials (serde-identical to domain type).
 pub type JiraCredentialsDto = JiraCredentials;
-/// IPC DTO for Gemini credentials.
-pub type GeminiCredentialsDto = GeminiCredentials;
+/// IPC DTO for Bedrock credentials.
+pub type BedrockCredentialsDto = BedrockCredentials;
 
-/// Result of probing Jira + Gemini with stored credentials.
+/// Result of probing Jira + Bedrock with stored credentials.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct SetupStatus {
     pub jira_ok: bool,
-    pub gemini_ok: bool,
+    pub bedrock_ok: bool,
     pub jira_message: String,
-    pub gemini_message: String,
+    pub bedrock_message: String,
 }
 
 /// One candidate Jira field for story-points mapping.
@@ -40,28 +40,40 @@ pub struct StoryPointsMappingDto {
     pub candidates: Vec<FieldCandidateDto>,
 }
 
+/// Non-secret setup snapshot for Settings / routing (never includes tokens).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct SetupInfoDto {
+    pub jira_configured: bool,
+    pub bedrock_configured: bool,
+    pub email: Option<String>,
+    pub site_url: Option<String>,
+    pub bedrock_region: Option<String>,
+}
+
 /// Persist credentials and ensure the local DB exists + is migrated.
+///
+/// Bedrock is optional: an empty `api_key` skips writing Bedrock credentials so
+/// dashboards/sync work without Ask AI.
 pub fn save_setup_inner(
     state: &AppState,
     jira: JiraCredentialsDto,
-    gemini: GeminiCredentialsDto,
+    bedrock: BedrockCredentialsDto,
 ) -> Result<(), String> {
     if jira.site_url.trim().is_empty() || jira.email.trim().is_empty() || jira.api_token.is_empty()
     {
         return Err("jira credentials incomplete".into());
-    }
-    if gemini.api_key.trim().is_empty() {
-        return Err("gemini api key is required".into());
     }
 
     state
         .credentials
         .save_jira(&jira)
         .map_err(|e| e.to_string())?;
-    state
-        .credentials
-        .save_gemini(&gemini)
-        .map_err(|e| e.to_string())?;
+    if !bedrock.api_key.trim().is_empty() {
+        state
+            .credentials
+            .save_bedrock(&bedrock)
+            .map_err(|e| e.to_string())?;
+    }
 
     if let Some(parent) = state.db_path.parent() {
         std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
@@ -71,33 +83,41 @@ pub fn save_setup_inner(
     Ok(())
 }
 
-/// Probe Jira `/myself` and Gemini `models` list using stored credentials.
+/// Probe Jira `/myself` and Bedrock Converse using stored credentials.
+///
+/// Jira is required. Missing Bedrock is treated as OK (optional Ask AI).
 pub async fn validate_setup_inner(state: &AppState) -> Result<SetupStatus, String> {
     let jira = state
         .credentials
         .load_jira()
         .map_err(|e| e.to_string())?
         .ok_or_else(|| "jira credentials not configured".to_string())?;
-    let gemini = state
-        .credentials
-        .load_gemini()
-        .map_err(|e| e.to_string())?
-        .ok_or_else(|| "gemini credentials not configured".to_string())?;
 
     let (jira_ok, jira_message) = match probe_jira(&jira).await {
         Ok(msg) => (true, msg),
         Err(msg) => (false, msg),
     };
-    let (gemini_ok, gemini_message) = match probe_gemini(&gemini).await {
-        Ok(msg) => (true, msg),
-        Err(msg) => (false, msg),
+
+    let bedrock = state
+        .credentials
+        .load_bedrock()
+        .map_err(|e| e.to_string())?;
+    let (bedrock_ok, bedrock_message) = match bedrock {
+        Some(creds) if !creds.api_key.trim().is_empty() => match probe_bedrock(&creds).await {
+            Ok(msg) => (true, msg),
+            Err(msg) => (false, msg),
+        },
+        _ => (
+            true,
+            "not configured (optional — Ask AI disabled)".into(),
+        ),
     };
 
     Ok(SetupStatus {
         jira_ok,
-        gemini_ok,
+        bedrock_ok,
         jira_message,
-        gemini_message,
+        bedrock_message,
     })
 }
 
@@ -120,9 +140,55 @@ async fn probe_jira(creds: &JiraCredentials) -> Result<String, String> {
     Ok(format!("authenticated as {label}"))
 }
 
-async fn probe_gemini(creds: &GeminiCredentials) -> Result<String, String> {
-    let client = ag_gemini::GeminiClient::new(creds).map_err(|e| e.to_string())?;
+async fn probe_bedrock(creds: &BedrockCredentials) -> Result<String, String> {
+    let client = ag_bedrock::BedrockClient::new(creds).map_err(|e| e.to_string())?;
     client.probe().await.map_err(|e| e.to_string())
+}
+
+/// Read non-secret setup fields for Settings UI and credential gating.
+pub fn get_setup_info_inner(state: &AppState) -> Result<SetupInfoDto, String> {
+    let jira = state
+        .credentials
+        .load_jira()
+        .map_err(|e| e.to_string())?;
+    let bedrock = state
+        .credentials
+        .load_bedrock()
+        .map_err(|e| e.to_string())?;
+
+    Ok(SetupInfoDto {
+        jira_configured: jira.is_some(),
+        bedrock_configured: bedrock
+            .as_ref()
+            .is_some_and(|c| !c.api_key.trim().is_empty()),
+        email: jira.as_ref().map(|j| j.email.clone()),
+        site_url: jira.as_ref().map(|j| j.site_url.clone()),
+        bedrock_region: bedrock.as_ref().map(|b| b.region.clone()),
+    })
+}
+
+/// Wipe keychain credentials and delete the local SQLite DB (fresh onboarding).
+pub fn reset_setup_inner(state: &AppState) -> Result<(), String> {
+    if state.is_running().unwrap_or(false) {
+        return Err("cannot reset while a sync is running".into());
+    }
+    state
+        .credentials
+        .clear_all()
+        .map_err(|e| e.to_string())?;
+    remove_db_files(&state.db_path)?;
+    Ok(())
+}
+
+fn remove_db_files(db_path: &std::path::Path) -> Result<(), String> {
+    let wal = std::path::PathBuf::from(format!("{}-wal", db_path.display()));
+    let shm = std::path::PathBuf::from(format!("{}-shm", db_path.display()));
+    for path in [db_path.to_path_buf(), wal, shm] {
+        if path.exists() {
+            std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
 }
 
 /// Read story-points field map (including ambiguous candidates for UI confirmation).
@@ -256,9 +322,9 @@ pub mod tauri_cmds {
     pub fn save_setup(
         state: State<'_, std::sync::Arc<AppState>>,
         jira: JiraCredentialsDto,
-        gemini: GeminiCredentialsDto,
+        bedrock: BedrockCredentialsDto,
     ) -> Result<(), String> {
-        save_setup_inner(&state, jira, gemini)
+        save_setup_inner(&state, jira, bedrock)
     }
 
     #[tauri::command]
@@ -266,6 +332,18 @@ pub mod tauri_cmds {
         state: State<'_, std::sync::Arc<AppState>>,
     ) -> Result<SetupStatus, String> {
         validate_setup_inner(&state).await
+    }
+
+    #[tauri::command]
+    pub fn get_setup_info(
+        state: State<'_, std::sync::Arc<AppState>>,
+    ) -> Result<SetupInfoDto, String> {
+        get_setup_info_inner(&state)
+    }
+
+    #[tauri::command]
+    pub fn reset_setup(state: State<'_, std::sync::Arc<AppState>>) -> Result<(), String> {
+        reset_setup_inner(&state)
     }
 
     #[tauri::command]
@@ -286,7 +364,8 @@ pub mod tauri_cmds {
 
 #[cfg(feature = "desktop")]
 pub use tauri_cmds::{
-    get_story_points_mapping, save_setup, set_story_points_mapping, validate_setup,
+    get_setup_info, get_story_points_mapping, reset_setup, save_setup, set_story_points_mapping,
+    validate_setup,
 };
 
 #[cfg(test)]
@@ -295,6 +374,90 @@ mod tests {
     use ag_credentials::{CredentialStore, MemoryCredentialStore};
     use std::sync::Arc;
     use tempfile::tempdir;
+
+    #[test]
+    fn save_setup_allows_empty_bedrock_key() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("setup-optional-bedrock.db");
+        let store = Arc::new(MemoryCredentialStore::default());
+        let state = AppState::with_credentials(db_path.clone(), store.clone());
+
+        save_setup_inner(
+            &state,
+            JiraCredentials {
+                site_url: "https://example.atlassian.net".into(),
+                email: "a@b.c".into(),
+                api_token: "t".into(),
+            },
+            BedrockCredentials {
+                api_key: "   ".into(),
+                region: "".into(),
+            },
+        )
+        .unwrap();
+
+        assert!(store.load_jira().unwrap().is_some());
+        assert!(store.load_bedrock().unwrap().is_none());
+        assert!(db_path.is_file());
+    }
+
+    #[test]
+    fn get_setup_info_exposes_non_secret_fields() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("setup-info.db");
+        let store = MemoryCredentialStore::default();
+        store
+            .save_jira(&JiraCredentials {
+                site_url: "https://example.atlassian.net".into(),
+                email: "dev@example.com".into(),
+                api_token: "secret".into(),
+            })
+            .unwrap();
+        store
+            .save_bedrock(&BedrockCredentials {
+                api_key: "bedrock-secret".into(),
+                region: "ap-southeast-2".into(),
+            })
+            .unwrap();
+        let state = AppState::with_credentials(db_path, Arc::new(store));
+
+        let info = get_setup_info_inner(&state).unwrap();
+        assert!(info.jira_configured);
+        assert!(info.bedrock_configured);
+        assert_eq!(info.email.as_deref(), Some("dev@example.com"));
+        assert_eq!(info.bedrock_region.as_deref(), Some("ap-southeast-2"));
+        let encoded = serde_json::to_string(&info).unwrap();
+        assert!(!encoded.contains("secret"));
+        assert!(!encoded.contains("bedrock-secret"));
+    }
+
+    #[test]
+    fn reset_setup_clears_credentials_and_db() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("reset.db");
+        let store = Arc::new(MemoryCredentialStore::default());
+        let state = AppState::with_credentials(db_path.clone(), store.clone());
+        save_setup_inner(
+            &state,
+            JiraCredentials {
+                site_url: "https://example.atlassian.net".into(),
+                email: "a@b.c".into(),
+                api_token: "t".into(),
+            },
+            BedrockCredentials {
+                api_key: "k".into(),
+                region: "ap-southeast-2".into(),
+            },
+        )
+        .unwrap();
+        assert!(db_path.is_file());
+        assert!(store.load_jira().unwrap().is_some());
+
+        reset_setup_inner(&state).unwrap();
+        assert!(store.load_jira().unwrap().is_none());
+        assert!(store.load_bedrock().unwrap().is_none());
+        assert!(!db_path.exists());
+    }
 
     #[test]
     fn set_story_points_mapping_persists_and_backfills() {
@@ -336,8 +499,9 @@ mod tests {
             })
             .unwrap();
         store
-            .save_gemini(&GeminiCredentials {
+            .save_bedrock(&BedrockCredentials {
                 api_key: "g".into(),
+                region: "ap-southeast-2".into(),
             })
             .unwrap();
         let state = AppState::with_credentials(db_path.clone(), Arc::new(store));

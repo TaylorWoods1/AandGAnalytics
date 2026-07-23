@@ -34,7 +34,7 @@ describe('SyncBanner', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(/401\/403/i);
     expect(screen.getByRole('link', { name: /refresh credentials/i })).toHaveAttribute(
       'href',
-      '/setup',
+      '/settings',
     );
   });
 });

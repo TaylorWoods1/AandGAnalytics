@@ -24,7 +24,7 @@ export default function SyncBanner({ progress, error, onRetry }: SyncBannerProps
         {!credential && !offline ? <p>{error}</p> : <p className="sync-banner__detail">{error}</p>}
         {credential ? (
           <p>
-            <Link to="/setup">Refresh credentials</Link>
+            <Link to="/settings">Refresh credentials</Link>
           </p>
         ) : null}
         {onRetry && !credential ? (

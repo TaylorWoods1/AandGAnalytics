@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import DashboardNav from '../components/DashboardNav';
 import FilterBar from '../components/FilterBar';
 import {
   emptyMetricsFilter,
@@ -41,16 +41,7 @@ export default function SprintsPage() {
     <main className="page dashboard-page">
       <header className="dashboard-header">
         <h1>Sprints</h1>
-        <nav className="dashboard-nav">
-          <Link to="/">Home</Link>
-          <Link to="/flow">Flow</Link>
-          <Link to="/sprints" aria-current="page">
-            Sprints
-          </Link>
-          <Link to="/epics">Epics</Link>
-          <Link to="/explore">Explore</Link>
-          <Link to="/ask">Ask AI</Link>
-        </nav>
+        <DashboardNav current="sprints" />
       </header>
 
       <FilterBar value={filter} onChange={setFilter} />

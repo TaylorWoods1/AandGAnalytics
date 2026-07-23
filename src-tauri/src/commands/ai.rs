@@ -1,24 +1,23 @@
-//! Ask AI commands: context pack preview + Gemini Q&A.
+//! Ask AI commands: context pack preview + Bedrock Q&A.
 
 use std::path::Path;
 
-use ag_db::{migrate, open_db};
-use ag_gemini::{
-    build_context_pack, suggested_prompts, ContextPack, GeminiAnswer, GeminiClient,
-    MetricsFilter as GeminiFilter,
+use ag_bedrock::{
+    build_context_pack, suggested_prompts, AiAnswer, BedrockClient, ContextPack,
+    MetricsFilter as PackFilter,
 };
 use serde::{Deserialize, Serialize};
 
 use crate::commands::metrics::MetricsFilter;
 use crate::state::AppState;
 
-/// Default token budget for context packs sent to Gemini.
+/// Default token budget for context packs sent to Bedrock.
 pub const DEFAULT_TOKEN_BUDGET: usize = 6_000;
 
 /// IPC DTO mirroring [`ContextPack`].
 pub type ContextPackDto = ContextPack;
-/// IPC DTO mirroring [`GeminiAnswer`].
-pub type GeminiAnswerDto = GeminiAnswer;
+/// IPC DTO mirroring [`AiAnswer`].
+pub type AiAnswerDto = AiAnswer;
 
 /// Suggested prompt strings for the Ask AI UI.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -26,8 +25,8 @@ pub struct SuggestedPromptsDto {
     pub prompts: Vec<String>,
 }
 
-fn to_gemini_filter(filter: &MetricsFilter) -> GeminiFilter {
-    GeminiFilter {
+fn to_pack_filter(filter: &MetricsFilter) -> PackFilter {
+    PackFilter {
         project_keys: filter.project_keys.clone(),
         from: filter.from.clone(),
         to: filter.to.clone(),
@@ -43,9 +42,14 @@ fn with_db<T>(
     if !Path::new(&state.db_path).is_file() {
         return Err("database not found; run setup / sync first".into());
     }
-    let conn = open_db(&state.db_path).map_err(|e| e.to_string())?;
-    migrate(&conn).map_err(|e| e.to_string())?;
+    let conn = open_db_conn(state)?;
     f(&conn)
+}
+
+fn open_db_conn(state: &AppState) -> Result<rusqlite::Connection, String> {
+    let conn = ag_db::open_db(&state.db_path).map_err(|e| e.to_string())?;
+    ag_db::migrate(&conn).map_err(|e| e.to_string())?;
+    Ok(conn)
 }
 
 /// Preview the context pack that would be sent for the active filters.
@@ -55,32 +59,32 @@ pub fn preview_context_pack_inner(
 ) -> Result<ContextPackDto, String> {
     filter.validate()?;
     with_db(state, |conn| {
-        build_context_pack(conn, &to_gemini_filter(&filter), DEFAULT_TOKEN_BUDGET)
+        build_context_pack(conn, &to_pack_filter(&filter), DEFAULT_TOKEN_BUDGET)
             .map_err(|e| e.to_string())
     })
 }
 
-/// Ask Gemini a question grounded in a local context pack.
+/// Ask Bedrock a question grounded in a local context pack.
 ///
 /// Errors are chat-only; callers must not treat failures as dashboard outages.
 pub async fn ask_ai_inner(
     state: &AppState,
     filter: MetricsFilter,
     question: String,
-) -> Result<GeminiAnswerDto, String> {
+) -> Result<AiAnswerDto, String> {
     filter.validate()?;
     let pack = with_db(state, |conn| {
-        build_context_pack(conn, &to_gemini_filter(&filter), DEFAULT_TOKEN_BUDGET)
+        build_context_pack(conn, &to_pack_filter(&filter), DEFAULT_TOKEN_BUDGET)
             .map_err(|e| e.to_string())
     })?;
 
-    let gemini = state
+    let bedrock = state
         .credentials
-        .load_gemini()
+        .load_bedrock()
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| "gemini credentials not configured".to_string())?;
+        .ok_or_else(|| "bedrock credentials not configured".to_string())?;
 
-    let client = GeminiClient::new(&gemini).map_err(|e| e.to_string())?;
+    let client = BedrockClient::new(&bedrock).map_err(|e| e.to_string())?;
     client
         .ask(&pack, &question)
         .await
@@ -112,7 +116,7 @@ pub mod tauri_cmds {
         state: State<'_, std::sync::Arc<AppState>>,
         filter: MetricsFilter,
         question: String,
-    ) -> Result<GeminiAnswerDto, String> {
+    ) -> Result<AiAnswerDto, String> {
         ask_ai_inner(&state, filter, question).await
     }
 
@@ -129,8 +133,9 @@ pub use tauri_cmds::{ask_ai, get_suggested_prompts, preview_context_pack};
 mod tests {
     use super::*;
     use ag_credentials::{
-        CredentialStore, GeminiCredentials, JiraCredentials, MemoryCredentialStore,
+        BedrockCredentials, CredentialStore, JiraCredentials, MemoryCredentialStore,
     };
+    use ag_db::{migrate, open_db};
     use std::sync::Arc;
     use tempfile::tempdir;
 
@@ -159,8 +164,9 @@ mod tests {
             })
             .unwrap();
         store
-            .save_gemini(&GeminiCredentials {
+            .save_bedrock(&BedrockCredentials {
                 api_key: "g".into(),
+                region: "ap-southeast-2".into(),
             })
             .unwrap();
         let state = AppState::with_credentials(db_path, Arc::new(store));

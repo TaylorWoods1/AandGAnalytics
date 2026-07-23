@@ -1,0 +1,31 @@
+ui/src/pages/PerformancePage.tsx
+  s_93508c65e06030::t_ac5ecca97cd27b 1-198
+ui/src/pages/PerformancePage.test.tsx
+  s_93508c65e06030::t_d7e4145bd64ebc 64-66
+  s_93508c65e06030::t_f0b13078a62dbf 1-63,67-68
+ui/src/App.tsx
+  s_93508c65e06030::t_140a40bde9a3d7 9
+  s_93508c65e06030::t_ae6e5929be9ea6 61-67
+ui/src/components/DashboardNav.tsx
+  s_93508c65e06030::t_a99ad653d35779 5,16
+ui/src/lib/tauri.ts
+  s_93508c65e06030::t_f992ca1dedc80e 222-262
+ui/src/styles.css
+  s_93508c65e06030::t_10600028e0e994 753-861
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.5.2",
+  "base_commit_sha": "496f1bceed527e432c0573f17e17e831c791664c",
+  "prompts": {},
+  "sessions": {
+    "s_93508c65e06030": {
+      "agent_id": {
+        "tool": "cursor",
+        "id": "b0fc9626-0a58-47fe-9649-91f7b56c72cd",
+        "model": "default"
+      },
+      "human_author": "TaylorWoods1 <taylorwoods1@me.com>"
+    }
+  }
+}
